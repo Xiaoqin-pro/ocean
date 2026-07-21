@@ -2,6 +2,10 @@
 
 This workspace supports the preliminary study of degradation-conditioned confidence calibration for underwater semantic segmentation.
 
+## Current status
+
+The current `v1_seed_20260721` random split is retained only as an engineering baseline. Cross-split exact duplicates were found, including train-to-official-test duplicates. Do not use v1 results as paper-ready results. The `v2_grouped_deduplicated` split is the required leakage-safe protocol for formal baseline and downstream experiments.
+
 ## Environment
 
 The `venv` folder uses the system's CUDA-enabled PyTorch environment and its installed Transformers SegFormer implementation. This is the working SegFormer baseline on this computer; the currently available Python 3.13 runtime does not have a compatible full-MMCV extension for MMSegmentation. Activate it in PowerShell with:

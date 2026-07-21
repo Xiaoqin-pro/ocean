@@ -11,6 +11,9 @@ data/suim_processed/
 !data/suim_processed/splits/v1_seed_20260721/
 !data/suim_processed/splits/v1_seed_20260721/*.csv
 !data/suim_processed/splits/v1_seed_20260721/*.txt
+!data/suim_processed/splits/v2_grouped_deduplicated/
+!data/suim_processed/splits/v2_grouped_deduplicated/*.csv
+!data/suim_processed/splits/v2_grouped_deduplicated/*.txt
 !data/suim_processed/quality_reports/
 !data/suim_processed/quality_reports/*.csv
 !data/suim_processed/quality_reports/*.json
@@ -18,6 +21,7 @@ data/suim_processed/images/
 data/suim_processed/masks/
 data/suim_processed/manifest.csv
 data/suim_processed/quality_reports/*.png
+data/suim_processed/quality_reports/**/*.png
 data/dut_useg_raw/
 data/dut_useg_processed/
 data/*.zip

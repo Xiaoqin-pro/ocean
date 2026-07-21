@@ -1,0 +1,9 @@
+Operating system: Windows-11-10.0.22631-SP0
+Python version: 3.13.7
+PyTorch version: 2.7.1+cu118
+Torch CUDA version: 11.8
+CUDA available: True
+GPU name: NVIDIA GeForce RTX 4060 Laptop GPU
+GPU driver: 556.12
+Transformers version: 5.9.0
+Albumentations version: 2.0.8
