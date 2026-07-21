@@ -1,0 +1,21 @@
+sample_id,quantized_ratio,mask_alignment_ok,semantic_regions_reasonable,decision,reviewer,review_date,notes
+f_r_1070_,0.8497950335041388,True,True,exclude,manual_review,2026-07-21,Excluded with unresolved size-repair sample.
+f_r_1183_,0.8330989583333334,True,True,include,manual_review,2026-07-21,Quantized mask preserves semantic regions and aligns with image.
+f_r_1324_,0.7768977864583333,True,True,include,manual_review,2026-07-21,Quantized mask preserves semantic regions and aligns with image.
+f_r_940_,0.751787109375,True,True,include,manual_review,2026-07-21,Quantized mask preserves semantic regions and aligns with image.
+f_r_1816_,0.7452502956247536,True,True,exclude,manual_review,2026-07-21,Excluded with unresolved size-repair sample.
+f_r_1259_,0.7381969051356806,True,True,exclude,manual_review,2026-07-21,Excluded with unresolved size-repair sample.
+f_r_1302_,0.7174260938115885,True,True,exclude,manual_review,2026-07-21,Excluded with unresolved size-repair sample.
+d_r_135_,0.7153059895833334,True,True,include,manual_review,2026-07-21,Quantized mask preserves semantic regions and aligns with image.
+f_r_407_,0.715068359375,True,True,include,manual_review,2026-07-21,Quantized mask preserves semantic regions and aligns with image.
+f_r_43_,0.7135188802083333,True,True,include,manual_review,2026-07-21,Quantized mask preserves semantic regions and aligns with image.
+f_r_963_,0.6913313802083333,True,True,include,manual_review,2026-07-21,Quantized mask preserves semantic regions and aligns with image.
+f_r_903_,0.6795084635416667,True,True,include,manual_review,2026-07-21,Quantized mask preserves semantic regions and aligns with image.
+d_r_270_,0.6689876302083333,True,True,include,manual_review,2026-07-21,Quantized mask preserves semantic regions and aligns with image.
+f_r_499_,0.6253450520833334,True,True,include,manual_review,2026-07-21,Quantized mask preserves semantic regions and aligns with image.
+f_r_1069_,0.6114465904611747,True,True,exclude,manual_review,2026-07-21,Excluded with unresolved size-repair sample.
+d_r_273_,0.6056119791666666,True,True,include,manual_review,2026-07-21,Quantized mask preserves semantic regions and aligns with image.
+f_r_1812_,0.6037945727741646,True,True,exclude,manual_review,2026-07-21,Excluded with unresolved size-repair sample.
+f_r_1133_,0.5738628301143083,True,True,exclude,manual_review,2026-07-21,Excluded with unresolved size-repair sample.
+f_r_500_,0.5457421875,True,True,include,manual_review,2026-07-21,Quantized mask preserves semantic regions and aligns with image.
+f_r_1006_,0.544736328125,True,True,include,manual_review,2026-07-21,Quantized mask preserves semantic regions and aligns with image.

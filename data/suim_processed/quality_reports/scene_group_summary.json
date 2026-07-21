@@ -1,0 +1,9 @@
+{
+  "exact_sha_groups": 1622,
+  "scene_groups": 1622,
+  "candidate_count": 300,
+  "pending_candidates": 300,
+  "confirmed_same_scene_pairs": 0,
+  "embeddings_used": true,
+  "protocol_status": "pending_manual_near_duplicate_review"
+}
