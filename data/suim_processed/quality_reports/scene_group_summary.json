@@ -1,15 +1,15 @@
 {
   "exact_sha_groups": 1622,
-  "scene_groups": 1622,
+  "scene_groups": 1557,
   "all_candidate_count": 72,
   "review_record_count": 72,
-  "pending_candidates": 72,
-  "confirmed_same_scene_pairs": 0,
+  "pending_candidates": 0,
+  "confirmed_same_scene_pairs": 71,
   "embeddings_used": true,
   "candidate_thresholds": {
     "phash_max_distance": 4,
     "dhash_max_distance": 4,
     "embedding_min_cosine": 0.995
   },
-  "protocol_status": "pending_manual_near_duplicate_review"
+  "protocol_status": "review_complete"
 }

@@ -4,7 +4,7 @@ This workspace supports the preliminary study of degradation-conditioned confide
 
 ## Current status
 
-The current `v1_seed_20260721` random split is retained only as an engineering baseline. Cross-split exact duplicates were found, including train-to-official-test duplicates. Do not use v1 results as paper-ready results. `v2_grouped_deduplicated` removes exact-SHA leakage and known label conflicts, but remains provisional until pHash/dHash/feature near-duplicate review and scene-group isolation are completed. Do not start a formal v2 baseline until that review is recorded.
+The current `v1_seed_20260721` random split is retained only as an engineering baseline. Cross-split exact duplicates were found, including train-to-official-test duplicates. Do not use v1 results as paper-ready results. The reviewed, scene-grouped, class-balanced formal split is `v2_scene_grouped_deduplicated`; its protocol report records the fixed candidate thresholds, review decisions, exclusions, and split hashes.
 
 ## Environment
 

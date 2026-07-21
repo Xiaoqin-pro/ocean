@@ -14,6 +14,8 @@ data/suim_processed/
 !data/suim_processed/splits/v2_grouped_deduplicated/
 !data/suim_processed/splits/v2_grouped_deduplicated/*.csv
 !data/suim_processed/splits/v2_grouped_deduplicated/*.txt
+!data/suim_processed/splits/v2_scene_grouped_deduplicated/
+!data/suim_processed/splits/v2_scene_grouped_deduplicated/*.csv
 !data/suim_processed/quality_reports/
 !data/suim_processed/quality_reports/*.csv
 !data/suim_processed/quality_reports/*.json
@@ -25,6 +27,7 @@ data/suim_processed/quality_reports/**/*.png
 data/suim_processed/quality_reports/*.zip
 data/suim_processed/quality_reports/**/*.zip
 data/suim_processed/quality_reports/review_batches/
+data/suim_processed/quality_reports/near_duplicate_review_pending_backup.csv
 data/dut_useg_raw/
 data/dut_useg_processed/
 data/*.zip
