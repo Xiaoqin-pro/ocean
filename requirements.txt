@@ -1,0 +1,15 @@
+# PyTorch and Transformers are inherited from the CUDA-enabled system installation.
+# This project uses Transformers' SegFormer rather than MMSegmentation because the
+# local Python 3.13 runtime has no compatible full-MMCV CUDA extension.
+transformers==5.9.0
+albumentations>=2.0,<3.0
+opencv-python>=4.10
+tensorboard>=2.18
+pandas>=2.2
+matplotlib>=3.9
+scikit-learn>=1.6
+tqdm>=4.67
+rich>=13.9
+Pillow>=10.0
+PyYAML>=6.0
+pytest>=8.0

@@ -1,0 +1,10 @@
+seed=20260721
+train=1220
+val=152
+calibration=153
+test=110
+The official TEST partition is excluded from training, tuning, and calibration.
+train_sha256=99cfa243c0357c8aa91b325abbb53b8c57e0fb2a44616f3d719426572323891c
+val_sha256=4be8e97470140360ba4aca444d5500cf5622d6befbbd29a8bee466d821b996c8
+calibration_sha256=0233b17d86a4effe9cbe3b89b1e704adf05fc9f91ce831bf1c9292cce9bccf5d
+test_sha256=e5e9d1e8078bf12a7ed520fd048d8769948790f3001ad5019feb1e3e8b0c49b8

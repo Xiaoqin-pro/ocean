@@ -1,0 +1,16 @@
+{
+  "samples": 1635,
+  "quantized_pixels": 10095731,
+  "total_pixels": 597454900,
+  "overall_quantized_ratio": 0.016897896393518574,
+  "mean_quantized_ratio": 0.01766026714243111,
+  "median_quantized_ratio": 0.0,
+  "p95_quantized_ratio": 0.03781094373583452,
+  "max_quantized_ratio": 0.8497950335041388,
+  "size_repaired_samples": 37,
+  "size_repaired_by_split": {
+    "calibration": 6,
+    "train": 28,
+    "val": 3
+  }
+}

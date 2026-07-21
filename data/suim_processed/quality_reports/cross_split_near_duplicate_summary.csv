@@ -1,0 +1,5 @@
+comparison,min,median,max,count
+train_vs_calibration,0,16.0,18,100
+train_vs_test,0,16.0,18,100
+train_vs_val,0,16.0,18,100
+val_vs_test,16,20.0,20,100
