@@ -1,0 +1,25 @@
+experiment:
+  name: segformer_b0_suim_v2
+  seed: 20260721
+  output_dir: outputs/segformer_b0_suim_v2
+data:
+  image_size: 384
+  num_classes: 8
+  batch_size: 4
+  num_workers: 0
+  split_dir: data/suim_processed/splits/v2_grouped_deduplicated
+model:
+  pretrained_model: nvidia/mit-b0
+  num_labels: 8
+  do_reduce_labels: false
+training:
+  epochs: 100
+  learning_rate: 0.00006
+  weight_decay: 0.01
+  amp: true
+  validate_every: 5
+  save_best_only: true
+  early_stopping_patience: 20
+loss:
+  name: cross_entropy
+  ignore_index: 255

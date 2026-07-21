@@ -1,0 +1,9 @@
+{
+  "duplicate_image_pairs": 13,
+  "cross_partition_duplicate_image_pairs": 4,
+  "cross_partition_mask_identical_pairs": 0,
+  "cross_partition_mask_inconsistent_pairs": 4,
+  "cross_v1_split_duplicate_image_pairs": 9,
+  "cross_v1_split_mask_identical_pairs": 0,
+  "cross_v1_split_mask_inconsistent_pairs": 9
+}
