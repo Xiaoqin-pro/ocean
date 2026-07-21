@@ -23,6 +23,8 @@ data/suim_processed/manifest.csv
 data/suim_processed/quality_reports/*.png
 data/suim_processed/quality_reports/**/*.png
 data/suim_processed/quality_reports/*.zip
+data/suim_processed/quality_reports/**/*.zip
+data/suim_processed/quality_reports/review_batches/
 data/dut_useg_raw/
 data/dut_useg_processed/
 data/*.zip

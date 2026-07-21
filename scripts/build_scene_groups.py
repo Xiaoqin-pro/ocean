@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
@@ -19,6 +18,7 @@ from PIL import Image
 from sklearn.neighbors import NearestNeighbors
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+ALLOWED_DECISIONS = {"pending", "same_scene", "different_scene"}
 
 
 def sha256_file(path: Path) -> str:
@@ -85,10 +85,29 @@ def image_embeddings(manifest: pd.DataFrame, batch_size: int) -> np.ndarray:
     return np.concatenate(vectors, axis=0)
 
 
+def text(value: object) -> str:
+    return "" if pd.isna(value) else str(value).strip()
+
+
+def validate_reviews(frame: pd.DataFrame) -> None:
+    invalid = sorted(set(frame["review_decision"].map(text)).difference(ALLOWED_DECISIONS))
+    if invalid:
+        raise ValueError(f"Invalid review_decision values: {invalid}. Allowed: {sorted(ALLOWED_DECISIONS)}")
+    decided = frame.loc[frame["review_decision"].map(text).isin({"same_scene", "different_scene"})]
+    missing = decided.loc[decided["reviewer"].map(text).eq("") | decided["review_date"].map(text).eq("")]
+    if not missing.empty:
+        raise ValueError("Every same_scene/different_scene review must include reviewer and review_date.")
+
+
 def preserve_reviews(path: Path) -> dict[str, dict[str, object]]:
     if not path.is_file():
         return {}
     previous = pd.read_csv(path)
+    required = {"pair_key", "review_decision", "reviewer", "review_date", "notes"}
+    missing = required.difference(previous.columns)
+    if missing:
+        raise ValueError(f"Existing review CSV is missing columns: {sorted(missing)}")
+    validate_reviews(previous)
     return {str(row.pair_key): row._asdict() for row in previous.itertuples(index=False)}
 
 
@@ -96,13 +115,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Generate near-duplicate candidates and scene-group IDs.")
     parser.add_argument("--manifest", type=Path, default=PROJECT_ROOT / "data" / "suim_processed" / "manifest.csv")
     parser.add_argument("--report-dir", type=Path, default=PROJECT_ROOT / "data" / "suim_processed" / "quality_reports")
-    parser.add_argument("--phash-threshold", type=int, default=14)
-    parser.add_argument("--dhash-threshold", type=int, default=14)
+    parser.add_argument("--phash-threshold", type=int, default=4)
+    parser.add_argument("--dhash-threshold", type=int, default=4)
     parser.add_argument("--with-segformer-embeddings", action="store_true")
-    parser.add_argument("--embedding-threshold", type=float, default=0.96)
+    parser.add_argument("--embedding-threshold", type=float, default=0.995)
     parser.add_argument("--embedding-neighbors", type=int, default=6)
     parser.add_argument("--embedding-batch-size", type=int, default=16)
-    parser.add_argument("--max-candidates", type=int, default=300)
     args = parser.parse_args()
     manifest = pd.read_csv(args.manifest).sort_values(["partition", "sample_id"]).reset_index(drop=True)
     manifest["image_sha256"] = [sha256_file(PROJECT_ROOT / path) for path in manifest["image_path"]]
@@ -121,13 +139,15 @@ def main() -> None:
             "sample_id_b": second.sample_id, "partition_b": second.partition, "image_path_b": second.image_path,
             "phash_distance": int((int(first.phash) ^ int(second.phash)).bit_count()),
             "dhash_distance": int((int(first.dhash) ^ int(second.dhash)).bit_count()),
-            "embedding_cosine": np.nan, "candidate_sources": "", "review_decision": "pending", "reviewer": "", "review_date": "", "notes": "",
+            "embedding_cosine": np.nan, "candidate_sources": "", "priority": 1, "review_decision": "pending", "reviewer": "", "review_date": "", "notes": "",
         })
         sources = set(filter(None, str(row["candidate_sources"]).split(";")))
         sources.add(source)
         row["candidate_sources"] = ";".join(sorted(sources))
         if cosine is not None:
             row["embedding_cosine"] = max(float(cosine), float(row["embedding_cosine"]) if pd.notna(row["embedding_cosine"]) else -1.0)
+        if {str(first.partition), str(second.partition)} == {"train_val", "test"}:
+            row["priority"] = 0
 
     for left in range(len(manifest)):
         for right in range(left + 1, len(manifest)):
@@ -146,13 +166,17 @@ def main() -> None:
                     add_pair(left, int(right), source="segformer_embedding", cosine=cosine)
     review_path = args.report_dir / "near_duplicate_review.csv"
     previous = preserve_reviews(review_path)
-    ordered = sorted(candidates.values(), key=lambda row: (-(row["embedding_cosine"] if pd.notna(row["embedding_cosine"]) else -1.0), row["phash_distance"], row["dhash_distance"], row["pair_key"]))[:args.max_candidates]
+    ordered = sorted(candidates.values(), key=lambda row: (row["priority"], -(row["embedding_cosine"] if pd.notna(row["embedding_cosine"]) else -1.0), row["phash_distance"], row["dhash_distance"], row["pair_key"]))
     for row in ordered:
         if row["pair_key"] in previous:
             for key in ("review_decision", "reviewer", "review_date", "notes"):
-                row[key] = previous[row["pair_key"]].get(key, row[key])
+                row[key] = text(previous[row["pair_key"]].get(key, row[key]))
     args.report_dir.mkdir(parents=True, exist_ok=True)
+    all_path = args.report_dir / "near_duplicate_candidates_all.csv"
+    pd.DataFrame(ordered).to_csv(all_path, index=False)
     pd.DataFrame(ordered).to_csv(review_path, index=False)
+    review_frame = pd.DataFrame(ordered)
+    validate_reviews(review_frame)
     union_find = UnionFind(manifest["sample_id"].tolist())
     for _, group in manifest.groupby("image_sha256"):
         members = group["sample_id"].tolist()
@@ -168,8 +192,10 @@ def main() -> None:
     manifest[["sample_id", "partition", "image_path", "image_sha256", "phash", "dhash", "scene_group_id", "scene_group_source"]].to_csv(args.report_dir / "scene_group_members.csv", index=False)
     summary = {
         "exact_sha_groups": int(manifest["image_sha256"].nunique()), "scene_groups": int(manifest["scene_group_id"].nunique()),
-        "candidate_count": int(len(ordered)), "pending_candidates": int(sum(row["review_decision"] == "pending" for row in ordered)),
+        "all_candidate_count": int(len(ordered)), "review_record_count": int(len(review_frame)),
+        "pending_candidates": int(sum(row["review_decision"] == "pending" for row in ordered)),
         "confirmed_same_scene_pairs": int(len(confirmed)), "embeddings_used": bool(args.with_segformer_embeddings),
+        "candidate_thresholds": {"phash_max_distance": args.phash_threshold, "dhash_max_distance": args.dhash_threshold, "embedding_min_cosine": args.embedding_threshold},
         "protocol_status": "pending_manual_near_duplicate_review" if any(row["review_decision"] == "pending" for row in ordered) else "review_complete",
     }
     (args.report_dir / "scene_group_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")

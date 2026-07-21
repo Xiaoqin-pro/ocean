@@ -18,7 +18,7 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=100)
     args = parser.parse_args()
     candidates = pd.read_csv(args.review_csv)
-    candidates = candidates.loc[candidates["review_decision"].eq("pending")].head(args.limit)
+    candidates = candidates.loc[candidates["review_decision"].fillna("").astype(str).str.strip().eq("pending")].head(args.limit)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     for rank, row in enumerate(candidates.itertuples(index=False), start=1):
         figure, axes = plt.subplots(1, 2, figsize=(12, 5))
