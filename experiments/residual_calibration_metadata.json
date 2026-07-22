@@ -1,0 +1,10 @@
+{
+  "source_commit": "v0.4-temperature-scaling",
+  "splits_evaluated": [
+    "val"
+  ],
+  "official_test_evaluated": false,
+  "model_retrained": false,
+  "bootstrap_iterations": 1000,
+  "cache_integrity_verified": true
+}
