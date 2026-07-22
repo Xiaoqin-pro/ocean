@@ -1,6 +1,7 @@
+import pytest
 import torch
 
-from calibration.temperature_scaling import fit_temperature, scale_logits
+from calibration.temperature_scaling import fit_temperature, fit_temperature_from_batches, scale_logits
 
 
 def test_temperature_scaling_preserves_argmax() -> None:
@@ -14,3 +15,23 @@ def test_fit_temperature_is_positive_and_does_not_worsen_nll() -> None:
     result = fit_temperature(logits, labels)
     assert 0.05 <= result.temperature <= 20.0
     assert result.final_nll <= result.initial_nll + 1e-7
+
+
+@pytest.mark.parametrize("temperature", [0.0, -1.0, float("nan"), float("inf")])
+def test_invalid_temperature_is_rejected(temperature: float) -> None:
+    with pytest.raises(ValueError, match="finite and positive"):
+        scale_logits(torch.ones((1, 2, 1, 1)), temperature)
+
+
+def test_temperature_one_is_an_exact_identity() -> None:
+    logits = torch.randn((2, 3, 4, 4))
+    assert torch.equal(scale_logits(logits, 1.0), logits)
+    assert torch.equal(torch.softmax(scale_logits(logits, 1.0), 1), torch.softmax(logits, 1))
+
+
+def test_streaming_fit_rejects_empty_valid_pixels() -> None:
+    def batches():
+        yield torch.ones((1, 2, 2, 2)), torch.full((1, 2, 2), 255)
+
+    with pytest.raises(ValueError, match="No valid labels"):
+        fit_temperature_from_batches(batches)

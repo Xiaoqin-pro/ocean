@@ -15,6 +15,8 @@ class TemperatureFit:
     iterations: int
     converged: bool
     valid_pixels: int
+    at_boundary: bool
+    nll_improvement: float
 
 
 def scale_logits(logits: torch.Tensor, temperature: float | torch.Tensor) -> torch.Tensor:
@@ -57,4 +59,54 @@ def fit_temperature(
     final = float(functional.cross_entropy(scale_logits(logits, temperature), labels, ignore_index=ignore_index).item())
     if not final <= initial + 1e-7:
         raise RuntimeError(f"Temperature fitting worsened NLL: {initial} -> {final}")
-    return TemperatureFit(temperature, initial, final, iterations, True, valid_pixels)
+    at_boundary = abs(temperature - min_temperature) < 1e-8 or abs(temperature - max_temperature) < 1e-8
+    converged = bool(torch.isfinite(torch.tensor(final)) and final <= initial + 1e-7 and iterations < max_iter)
+    return TemperatureFit(temperature, initial, final, iterations, converged, valid_pixels, at_boundary, initial - final)
+
+
+def fit_temperature_from_batches(batch_factory, *, ignore_index: int = 255, min_temperature: float = 0.05, max_temperature: float = 20.0, max_iter: int = 100) -> TemperatureFit:
+    """Fit one scalar with a re-iterable batch factory and pixel-weighted NLL."""
+    first_loss = None
+    valid_pixels = 0
+    for logits, labels in batch_factory():
+        count = int(labels.ne(ignore_index).sum())
+        if count:
+            value = functional.cross_entropy(logits.float(), labels.long(), ignore_index=ignore_index, reduction="sum")
+            first_loss = value if first_loss is None else first_loss + value
+            valid_pixels += count
+    if not valid_pixels or first_loss is None:
+        raise ValueError("No valid labels available for temperature fitting.")
+    initial = float((first_loss / valid_pixels).item())
+    # The production cache factory yields CUDA batches.  Gradients are only
+    # required for this scalar, so each batch is back-propagated immediately;
+    # retaining a graph for the whole pooled calibration set would defeat the
+    # purpose of streaming and can exhaust GPU memory.
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    parameter = torch.nn.Parameter(torch.zeros((), device=device, dtype=torch.float64))
+    optimizer = torch.optim.LBFGS([parameter], lr=0.5, max_iter=max_iter, line_search_fn="strong_wolfe")
+    calls = 0
+    def closure() -> torch.Tensor:
+        nonlocal calls
+        optimizer.zero_grad(); total_value = 0.0; count = 0
+        for logits, labels in batch_factory():
+            count += int(labels.ne(ignore_index).sum())
+            # Recreate this tiny graph for every batch: after ``backward`` the
+            # previous graph is intentionally released to keep the fit bounded.
+            temperature = torch.exp(parameter).clamp(min_temperature, max_temperature).to(torch.float32)
+            loss = functional.cross_entropy(logits.float() / temperature, labels.long(), ignore_index=ignore_index, reduction="sum") / valid_pixels
+            total_value += float(loss.detach())
+            loss.backward()
+        if count != valid_pixels:
+            raise RuntimeError("The streaming batch factory changed between optimization passes.")
+        calls += 1
+        return torch.tensor(total_value, device=device)
+    optimizer.step(closure)
+    temperature = float(torch.exp(parameter).clamp(min_temperature, max_temperature).item())
+    with torch.no_grad():
+        total = 0.0
+        for logits, labels in batch_factory():
+            total += float(functional.cross_entropy(logits.float() / temperature, labels.long(), ignore_index=ignore_index, reduction="sum").item())
+        final = total / valid_pixels
+    if final > initial + 1e-7: raise RuntimeError(f"Temperature fitting worsened NLL: {initial} -> {final}")
+    boundary = abs(temperature-min_temperature)<1e-8 or abs(temperature-max_temperature)<1e-8
+    return TemperatureFit(temperature, initial, final, calls, calls < max_iter, valid_pixels, boundary, initial-final)

@@ -1,0 +1,15 @@
+experiment:
+  output_dir: outputs/temperature_scaling
+  baseline_config: configs/baseline/segformer_b0_suim_v2_scene.yaml
+  degradation_config: configs/degradation_pilot.yaml
+  checkpoint: outputs/segformer_b0_suim_v2_scene/checkpoints/best.pt
+  splits: [calibration, val]
+  seed: 20260721
+fitting:
+  method: lbfgs
+  min_temperature: 0.05
+  max_temperature: 20.0
+  max_iter: 100
+  objective_weighting: pixel_weighted
+metrics:
+  ece_bins: 15
