@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from collections.abc import Callable
 from typing import Any
 
 import albumentations as A
@@ -46,8 +47,17 @@ def build_eval_transform(image_size: int = 384) -> A.Compose:
     return _base_transform(image_size, training=False)
 
 
+ImageDegradation = Callable[[np.ndarray, str], np.ndarray]
+
+
 class SUIMDataset(Dataset[dict[str, Any]]):
-    def __init__(self, split_csv: str | Path, *, transform: A.Compose) -> None:
+    def __init__(
+        self,
+        split_csv: str | Path,
+        *,
+        transform: A.Compose,
+        image_degradation: ImageDegradation | None = None,
+    ) -> None:
         self.split_csv = Path(split_csv)
         if not self.split_csv.is_file():
             raise FileNotFoundError(f"Split file does not exist: {self.split_csv}")
@@ -61,6 +71,7 @@ class SUIMDataset(Dataset[dict[str, Any]]):
         if self.samples["sample_id"].duplicated().any():
             raise ValueError(f"Split contains duplicated sample ids: {self.split_csv}")
         self.transform = transform
+        self.image_degradation = image_degradation
 
     def __len__(self) -> int:
         return len(self.samples)
@@ -85,6 +96,14 @@ class SUIMDataset(Dataset[dict[str, Any]]):
         classes = np.unique(mask_array)
         if np.any(classes > 7):
             raise ValueError(f"Invalid labels for {row['sample_id']}: {classes.tolist()}")
+
+        if self.image_degradation is not None:
+            image_array = self.image_degradation(image_array, str(row["sample_id"]))
+            if image_array.shape != mask_array.shape + (3,) or image_array.dtype != np.uint8:
+                raise ValueError(
+                    "Image degradation must return an RGB uint8 image with unchanged spatial dimensions "
+                    f"for {row['sample_id']}."
+                )
 
         transformed = self.transform(image=image_array, mask=mask_array)
         return {
