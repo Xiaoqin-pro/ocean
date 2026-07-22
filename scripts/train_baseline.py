@@ -37,16 +37,19 @@ def resize_logits(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
 def evaluate(model: torch.nn.Module, loader: DataLoader, device: torch.device, amp: bool, classes: int, ignore_index: int) -> dict[str, Any]:
     model.eval()
     matrix = torch.zeros((classes, classes), dtype=torch.long, device=device)
-    losses: list[float] = []
+    loss_sum, valid_pixel_count = 0.0, 0
     for batch in loader:
         pixels, labels = batch["pixel_values"].to(device), batch["labels"].to(device)
         with torch.amp.autocast("cuda", enabled=amp):
             logits = resize_logits(model(pixel_values=pixels).logits, labels)
             loss = functional.cross_entropy(logits, labels, ignore_index=ignore_index)
-        losses.append(loss.item())
+        valid = labels.ne(ignore_index)
+        pixels_in_batch = int(valid.sum().item())
+        loss_sum += float(loss.item()) * pixels_in_batch
+        valid_pixel_count += pixels_in_batch
         matrix += confusion_matrix(logits.argmax(dim=1), labels, num_classes=classes, ignore_index=ignore_index).to(device)
     result = metrics_from_confusion_matrix(matrix.cpu())
-    result["loss"] = sum(losses) / len(losses)
+    result["loss"] = loss_sum / valid_pixel_count if valid_pixel_count else float("nan")
     return result
 
 
@@ -116,7 +119,7 @@ def main() -> None:
             writer.writeheader()
         for epoch in range(start_epoch, training["epochs"] + 1):
             model.train()
-            losses: list[float] = []
+            loss_sum, valid_pixel_count = 0.0, 0
             for batch in train_loader:
                 pixels, labels = batch["pixel_values"].to(device), batch["labels"].to(device)
                 optimizer.zero_grad(set_to_none=True)
@@ -126,8 +129,11 @@ def main() -> None:
                 scaler.scale(loss).backward()
                 scaler.step(optimizer)
                 scaler.update()
-                losses.append(loss.item())
-            row: dict[str, Any] = {"epoch": epoch, "train_loss": sum(losses) / len(losses), "val_loss": "", "val_miou": ""}
+                valid = labels.ne(loss_config["ignore_index"])
+                pixels_in_batch = int(valid.sum().item())
+                loss_sum += float(loss.item()) * pixels_in_batch
+                valid_pixel_count += pixels_in_batch
+            row: dict[str, Any] = {"epoch": epoch, "train_loss": loss_sum / valid_pixel_count if valid_pixel_count else float("nan"), "val_loss": "", "val_miou": ""}
             if epoch % training["validate_every"] == 0 or epoch == training["epochs"]:
                 validation = evaluate(model, val_loader, device, amp, data["num_classes"], loss_config["ignore_index"])
                 row.update(val_loss=validation["loss"], val_miou=validation["miou"])

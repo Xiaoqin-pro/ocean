@@ -1,0 +1,14 @@
+split_version=v2_grouped_deduplicated
+seed=20260721
+Official TEST is immutable and never used for training, tuning, or calibration.
+Development samples with exact image duplicates in official TEST were excluded.
+Unresolved mask-size repairs were excluded by default.
+Exact duplicate development images with conflicting processed masks were excluded by default.
+train=1172
+val=147
+calibration=147
+test=110
+train_sha256=a36cad902777480da7ffa219bad4e7b432ed574a78e0a1261db9569654d15e6a
+val_sha256=0609c922f3c2b79340e8c184959ab3c43f8dc1c98c571ddc85ba72d77034b383
+calibration_sha256=ed3dad04f1315466a62c9692723a0cf08b6358ea8057e89d589850f753738402
+test_sha256=95c54d05ca54a62636991c2bbb1658599e0ff5326f1851ad526bc2d245d4b5d8

@@ -1,0 +1,29 @@
+{
+  "split_version": "v2_grouped_deduplicated",
+  "seed": 20260721,
+  "official_test_immutable": true,
+  "development_before_exclusion": 1525,
+  "development_after_exclusion": 1466,
+  "excluded_samples": 59,
+  "excluded_by_reason": {
+    "unresolved_mask_size_repair": 37,
+    "conflicting_labels_for_exact_duplicate_image": 18,
+    "exact_duplicate_of_official_test": 4
+  },
+  "split_counts": {
+    "train": 1172,
+    "val": 147,
+    "calibration": 147,
+    "test": 110
+  },
+  "split_sha256": {
+    "train": "a36cad902777480da7ffa219bad4e7b432ed574a78e0a1261db9569654d15e6a",
+    "val": "0609c922f3c2b79340e8c184959ab3c43f8dc1c98c571ddc85ba72d77034b383",
+    "calibration": "ed3dad04f1315466a62c9692723a0cf08b6358ea8057e89d589850f753738402",
+    "test": "95c54d05ca54a62636991c2bbb1658599e0ff5326f1851ad526bc2d245d4b5d8"
+  },
+  "cross_split_group_leakage": false,
+  "development_to_official_test_exact_duplicates": 0,
+  "mask_size_repaired_included": false,
+  "conflicting_duplicate_labels_included": false
+}

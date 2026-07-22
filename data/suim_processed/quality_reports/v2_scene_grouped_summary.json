@@ -1,0 +1,20 @@
+{
+  "split_version": "v2_scene_grouped_deduplicated",
+  "selection_seed": 20260851,
+  "candidate_count": 300,
+  "balance_score": 0.015494853063111231,
+  "near_duplicate_review_status": "review_complete",
+  "split_counts": {
+    "train": 1167,
+    "val": 146,
+    "calibration": 146,
+    "test": 110
+  },
+  "split_sha256": {
+    "train": "025834309ac72f93f48a00409b49c5a9b0f5df6642e1ea4d0ea14a3d4c5edd89",
+    "val": "752ce6ca43fbf8d4e2ff3b65c43feca2f361cdb301152b8863db63b828a022c7",
+    "calibration": "969cf167487e8d4102e5971aeeb602df7a3d93b4cea39a65ff56d07700df7160",
+    "test": "7aca7d08e57d27a26b13e375a35ca726da43c9b92abdcf32793b31cf825bae38"
+  },
+  "development_to_official_test_scene_leakage": false
+}

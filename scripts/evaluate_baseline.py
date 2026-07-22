@@ -121,7 +121,7 @@ def evaluate_split(
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     model.eval()
     matrix = torch.zeros((classes, classes), dtype=torch.long, device=device)
-    losses: list[float] = []
+    loss_sum, valid_pixel_count = 0.0, 0
     calibration = CalibrationAccumulator(classes)
     per_image: list[dict[str, Any]] = []
     for batch in loader:
@@ -131,14 +131,17 @@ def evaluate_split(
             loss = functional.cross_entropy(logits, labels, ignore_index=ignore_index)
             probabilities = torch.softmax(logits, dim=1)
         prediction = logits.argmax(dim=1)
-        losses.append(float(loss.item()))
+        valid = labels.ne(ignore_index)
+        pixels_in_batch = int(valid.sum().item())
+        loss_sum += float(loss.item()) * pixels_in_batch
+        valid_pixel_count += pixels_in_batch
         matrix += confusion_matrix(prediction, labels, num_classes=classes, ignore_index=ignore_index).to(device)
         calibration.update(probabilities, labels, ignore_index)
         for image_id, image_prediction, image_target in zip(batch["sample_id"], prediction, labels):
             image_matrix = confusion_matrix(image_prediction, image_target, num_classes=classes, ignore_index=ignore_index)
             per_image.append({"sample_id": str(image_id), "miou": metrics_from_confusion_matrix(image_matrix)["miou"]})
     result = metrics_from_confusion_matrix(matrix.cpu())
-    result["loss"] = sum(losses) / len(losses)
+    result["loss"] = loss_sum / valid_pixel_count if valid_pixel_count else float("nan")
     result.update(calibration.metrics())
     return result, per_image
 
