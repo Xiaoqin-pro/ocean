@@ -1,0 +1,61 @@
+experiment:
+  name: degradation_pilot_v1
+  seed: 20260721
+  output_dir: outputs/degradation_pilot
+  baseline_config: configs/baseline/segformer_b0_suim_v2_scene.yaml
+  checkpoint: outputs/segformer_b0_suim_v2_scene/checkpoints/best.pt
+  splits: [val, calibration]
+  examples_per_condition: 3
+conditions:
+  - name: clean
+    degradation_type: clean
+    severity: 0
+    parameters: {}
+  - name: color_s1
+    degradation_type: color_attenuation
+    severity: 1
+    parameters: {red_scale: 0.75, green_scale: 0.88, blue_scale: 0.97, blue_green_veil: 0.02}
+  - name: color_s2
+    degradation_type: color_attenuation
+    severity: 2
+    parameters: {red_scale: 0.52, green_scale: 0.76, blue_scale: 0.93, blue_green_veil: 0.05}
+  - name: color_s3
+    degradation_type: color_attenuation
+    severity: 3
+    parameters: {red_scale: 0.32, green_scale: 0.63, blue_scale: 0.88, blue_green_veil: 0.08}
+  - name: turbidity_s1
+    degradation_type: turbidity
+    severity: 1
+    parameters: {transmission: 0.88, airlight_rgb: [0.15, 0.48, 0.67], spatial_variation: 0.04}
+  - name: turbidity_s2
+    degradation_type: turbidity
+    severity: 2
+    parameters: {transmission: 0.68, airlight_rgb: [0.18, 0.52, 0.70], spatial_variation: 0.08}
+  - name: turbidity_s3
+    degradation_type: turbidity
+    severity: 3
+    parameters: {transmission: 0.48, airlight_rgb: [0.22, 0.56, 0.73], spatial_variation: 0.12}
+  - name: lowlight_s1
+    degradation_type: lowlight
+    severity: 1
+    parameters: {exposure: 0.78, gamma: 1.08}
+  - name: lowlight_s2
+    degradation_type: lowlight
+    severity: 2
+    parameters: {exposure: 0.56, gamma: 1.20}
+  - name: lowlight_s3
+    degradation_type: lowlight
+    severity: 3
+    parameters: {exposure: 0.36, gamma: 1.35}
+  - name: blur_s1
+    degradation_type: blur
+    severity: 1
+    parameters: {kernel_size: 3, sigma: 0.8}
+  - name: blur_s2
+    degradation_type: blur
+    severity: 2
+    parameters: {kernel_size: 7, sigma: 1.6}
+  - name: blur_s3
+    degradation_type: blur
+    severity: 3
+    parameters: {kernel_size: 11, sigma: 2.5}
