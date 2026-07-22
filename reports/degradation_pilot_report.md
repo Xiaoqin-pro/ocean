@@ -8,7 +8,8 @@ Code commit: `b34e0898d1f5b43d38dc6d84f1e7ed30d20dda43`
 
 - Frozen checkpoint: `outputs/segformer_b0_suim_v2_scene/checkpoints/best.pt`, epoch 80.
 - Checkpoint SHA-256: `62CF10BA021B7E24429477C9C9C4690650EB0945D39E19DA0A8DEB3BB1132A5A`.
-- Baseline configuration SHA-256: `95C0C4AECACADE9B6D456BD4DB259EAB881D61A9864E883F58F45A557ED4BA26`.
+- Baseline configuration repository SHA-256 (LF-normalized): `AA23D9893C22F92D663F51E3A0C1FE1DD06AF37CD97F3FC937C99B1C2138197A`.
+- Local Windows working-copy SHA-256 (CRLF): `95C0C4AECACADE9B6D456BD4DB259EAB881D61A9864E883F58F45A557ED4BA26`.
 - Degradation configuration SHA-256: `12EB5FBB631DAC1B1C5B5CECA6B6C2CEAF426186F89DFFA7A08330401BCD1286`.
 - Conditions: clean plus color attenuation, turbidity/scattering, low light, and Gaussian blur at severities 1--3 (13 conditions total).
 - Evaluation splits: validation and calibration only. Official TEST was not accessed.
