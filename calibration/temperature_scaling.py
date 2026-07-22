@@ -12,11 +12,13 @@ class TemperatureFit:
     temperature: float
     initial_nll: float
     final_nll: float
-    iterations: int
+    optimizer_n_iter: int
+    function_evaluations: int
     converged: bool
     valid_pixels: int
     at_boundary: bool
     nll_improvement: float
+    finite_result: bool
 
 
 def scale_logits(logits: torch.Tensor, temperature: float | torch.Tensor) -> torch.Tensor:
@@ -45,23 +47,29 @@ def fit_temperature(
     initial = float(functional.cross_entropy(logits, labels, ignore_index=ignore_index).item())
     log_temperature = torch.nn.Parameter(torch.zeros((), device=logits.device, dtype=torch.float64))
     optimizer = torch.optim.LBFGS([log_temperature], lr=0.5, max_iter=max_iter, line_search_fn="strong_wolfe")
-    iterations = 0
+    function_evaluations = 0
     def closure() -> torch.Tensor:
-        nonlocal iterations
+        nonlocal function_evaluations
         optimizer.zero_grad()
         temperature = torch.exp(log_temperature).clamp(min_temperature, max_temperature)
         loss = functional.cross_entropy(logits / temperature.to(logits.dtype), labels, ignore_index=ignore_index)
         loss.backward()
-        iterations += 1
+        function_evaluations += 1
         return loss
     optimizer.step(closure)
     temperature = float(torch.exp(log_temperature).clamp(min_temperature, max_temperature).item())
     final = float(functional.cross_entropy(scale_logits(logits, temperature), labels, ignore_index=ignore_index).item())
     if not final <= initial + 1e-7:
         raise RuntimeError(f"Temperature fitting worsened NLL: {initial} -> {final}")
+    state = optimizer.state[log_temperature]
+    optimizer_n_iter = int(state.get("n_iter", 0))
+    function_evaluations = int(state.get("func_evals", function_evaluations))
+    finite_result = bool(torch.isfinite(torch.tensor(temperature)) and torch.isfinite(torch.tensor(final)))
     at_boundary = abs(temperature - min_temperature) < 1e-8 or abs(temperature - max_temperature) < 1e-8
-    converged = bool(torch.isfinite(torch.tensor(final)) and final <= initial + 1e-7 and iterations < max_iter)
-    return TemperatureFit(temperature, initial, final, iterations, converged, valid_pixels, at_boundary, initial - final)
+    # LBFGS exposes no numerical convergence flag.  This conservative diagnostic
+    # never interprets the number of closure calls as an optimizer iteration.
+    converged = bool(finite_result and final <= initial + 1e-7 and not at_boundary and optimizer_n_iter < max_iter)
+    return TemperatureFit(temperature, initial, final, optimizer_n_iter, function_evaluations, converged, valid_pixels, at_boundary, initial - final, finite_result)
 
 
 def fit_temperature_from_batches(batch_factory, *, ignore_index: int = 255, min_temperature: float = 0.05, max_temperature: float = 20.0, max_iter: int = 100) -> TemperatureFit:
@@ -84,9 +92,9 @@ def fit_temperature_from_batches(batch_factory, *, ignore_index: int = 255, min_
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     parameter = torch.nn.Parameter(torch.zeros((), device=device, dtype=torch.float64))
     optimizer = torch.optim.LBFGS([parameter], lr=0.5, max_iter=max_iter, line_search_fn="strong_wolfe")
-    calls = 0
+    function_evaluations = 0
     def closure() -> torch.Tensor:
-        nonlocal calls
+        nonlocal function_evaluations
         optimizer.zero_grad(); total_value = 0.0; count = 0
         for logits, labels in batch_factory():
             count += int(labels.ne(ignore_index).sum())
@@ -98,7 +106,7 @@ def fit_temperature_from_batches(batch_factory, *, ignore_index: int = 255, min_
             loss.backward()
         if count != valid_pixels:
             raise RuntimeError("The streaming batch factory changed between optimization passes.")
-        calls += 1
+        function_evaluations += 1
         return torch.tensor(total_value, device=device)
     optimizer.step(closure)
     temperature = float(torch.exp(parameter).clamp(min_temperature, max_temperature).item())
@@ -108,5 +116,10 @@ def fit_temperature_from_batches(batch_factory, *, ignore_index: int = 255, min_
             total += float(functional.cross_entropy(logits.float() / temperature, labels.long(), ignore_index=ignore_index, reduction="sum").item())
         final = total / valid_pixels
     if final > initial + 1e-7: raise RuntimeError(f"Temperature fitting worsened NLL: {initial} -> {final}")
+    state = optimizer.state[parameter]
+    optimizer_n_iter = int(state.get("n_iter", 0))
+    function_evaluations = int(state.get("func_evals", function_evaluations))
+    finite_result = bool(torch.isfinite(torch.tensor(temperature)) and torch.isfinite(torch.tensor(final)))
     boundary = abs(temperature-min_temperature)<1e-8 or abs(temperature-max_temperature)<1e-8
-    return TemperatureFit(temperature, initial, final, calls, calls < max_iter, valid_pixels, boundary, initial-final)
+    converged = bool(finite_result and final <= initial + 1e-7 and not boundary and optimizer_n_iter < max_iter)
+    return TemperatureFit(temperature, initial, final, optimizer_n_iter, function_evaluations, converged, valid_pixels, boundary, initial-final, finite_result)

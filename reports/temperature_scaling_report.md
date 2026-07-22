@@ -17,7 +17,7 @@
 | color attenuation | 2.1903 |
 | turbidity | 2.2494 |
 | low light | 2.3281 |
-| blur | 2.3930 |
+| blur | 2.3935 |
 
 All temperatures were fitted as `exp(log_temperature)` by minimizing calibration NLL only.
 
@@ -32,8 +32,10 @@ All temperatures were fitted as `exp(log_temperature)` by minimizing calibration
 
 ## Integrity checks
 
-- All 20 project tests passed.
+- All 20 project tests passed before this audit update; the added cache-integrity unit test is included in the follow-up test run.
 - Temperature fitting did not worsen calibration NLL for any of the six fitting scopes.
+- Every fit was finite, stayed away from the configured temperature bounds, and records optimizer iterations plus function evaluations in `experiments/temperature_scaling_fit_history.json`.
+- Cache evaluation now fails closed unless every cache has the expected checkpoint SHA-256, degradation-config SHA-256, consistent sample/logit/label counts, and unique sample IDs.
 - Positive scalar temperature preserved every cached argmax and all segmentation metrics within each condition/split.
 - Raw cache replay matched the frozen degradation pilot within the documented AMP replay tolerance; maximum mIoU difference was `1.66e-5`.
 

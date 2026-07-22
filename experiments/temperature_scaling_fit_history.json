@@ -1,0 +1,118 @@
+[
+  {
+    "scope": "clean",
+    "conditions": [
+      "clean"
+    ],
+    "temperature": 2.197198903975547,
+    "initial_nll": 0.8057961463928223,
+    "final_nll": 0.5452643155688746,
+    "optimizer_n_iter": 13,
+    "function_evaluations": 22,
+    "converged": true,
+    "valid_pixels": 21528576,
+    "at_boundary": false,
+    "nll_improvement": 0.2605318308239477,
+    "finite_result": true
+  },
+  {
+    "scope": "pooled",
+    "conditions": [
+      "clean",
+      "color_s1",
+      "color_s2",
+      "color_s3",
+      "turbidity_s1",
+      "turbidity_s2",
+      "turbidity_s3",
+      "lowlight_s1",
+      "lowlight_s2",
+      "lowlight_s3",
+      "blur_s1",
+      "blur_s2",
+      "blur_s3"
+    ],
+    "temperature": 2.28497280189414,
+    "initial_nll": 0.9050053358078003,
+    "final_nll": 0.594478364404478,
+    "optimizer_n_iter": 13,
+    "function_evaluations": 22,
+    "converged": true,
+    "valid_pixels": 279871488,
+    "at_boundary": false,
+    "nll_improvement": 0.3105269714033223,
+    "finite_result": true
+  },
+  {
+    "scope": "color",
+    "conditions": [
+      "color_s1",
+      "color_s2",
+      "color_s3"
+    ],
+    "temperature": 2.1902632567306903,
+    "initial_nll": 0.8208701014518738,
+    "final_nll": 0.5585224362329322,
+    "optimizer_n_iter": 13,
+    "function_evaluations": 22,
+    "converged": true,
+    "valid_pixels": 64585728,
+    "at_boundary": false,
+    "nll_improvement": 0.2623476652189416,
+    "finite_result": true
+  },
+  {
+    "scope": "turbidity",
+    "conditions": [
+      "turbidity_s1",
+      "turbidity_s2",
+      "turbidity_s3"
+    ],
+    "temperature": 2.2493760364147004,
+    "initial_nll": 0.8641698360443115,
+    "final_nll": 0.5749240814278659,
+    "optimizer_n_iter": 12,
+    "function_evaluations": 21,
+    "converged": true,
+    "valid_pixels": 64585728,
+    "at_boundary": false,
+    "nll_improvement": 0.28924575461644564,
+    "finite_result": true
+  },
+  {
+    "scope": "lowlight",
+    "conditions": [
+      "lowlight_s1",
+      "lowlight_s2",
+      "lowlight_s3"
+    ],
+    "temperature": 2.328063259646498,
+    "initial_nll": 0.9796465635299683,
+    "final_nll": 0.6389091458797213,
+    "optimizer_n_iter": 13,
+    "function_evaluations": 22,
+    "converged": true,
+    "valid_pixels": 64585728,
+    "at_boundary": false,
+    "nll_improvement": 0.340737417650247,
+    "finite_result": true
+  },
+  {
+    "scope": "blur",
+    "conditions": [
+      "blur_s1",
+      "blur_s2",
+      "blur_s3"
+    ],
+    "temperature": 2.3934651096891124,
+    "initial_nll": 0.9884034991264343,
+    "final_nll": 0.6194332140705296,
+    "optimizer_n_iter": 13,
+    "function_evaluations": 18,
+    "converged": true,
+    "valid_pixels": 64585728,
+    "at_boundary": false,
+    "nll_improvement": 0.3689702850559047,
+    "finite_result": true
+  }
+]

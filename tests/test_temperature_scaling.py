@@ -2,6 +2,7 @@ import pytest
 import torch
 
 from calibration.temperature_scaling import fit_temperature, fit_temperature_from_batches, scale_logits
+from scripts.evaluate_temperature_scaling import validate_cache_payload
 
 
 def test_temperature_scaling_preserves_argmax() -> None:
@@ -35,3 +36,17 @@ def test_streaming_fit_rejects_empty_valid_pixels() -> None:
 
     with pytest.raises(ValueError, match="No valid labels"):
         fit_temperature_from_batches(batches)
+
+
+def test_cache_integrity_rejects_mismatched_hash_or_duplicate_samples() -> None:
+    payload = {
+        "split": "val", "condition": "clean", "checkpoint_sha256": "checkpoint",
+        "degradation_config_sha256": "degradation", "sample_id": ["a", "b"],
+        "logits": torch.zeros((2, 8, 2, 2), dtype=torch.float16), "labels": torch.zeros((2, 4, 4), dtype=torch.long),
+    }
+    validate_cache_payload(payload, split="val", condition="clean", checkpoint_sha256="checkpoint", degradation_config_sha256="degradation")
+    with pytest.raises(ValueError, match="checkpoint hash mismatch"):
+        validate_cache_payload(payload, split="val", condition="clean", checkpoint_sha256="other", degradation_config_sha256="degradation")
+    payload["sample_id"] = ["a", "a"]
+    with pytest.raises(ValueError, match="duplicate sample IDs"):
+        validate_cache_payload(payload, split="val", condition="clean", checkpoint_sha256="checkpoint", degradation_config_sha256="degradation")

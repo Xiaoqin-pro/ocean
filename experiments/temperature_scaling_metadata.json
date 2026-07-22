@@ -3,6 +3,8 @@
   "config_sha256": "2765B67A665A7591B4813FF2D171BB5928B397BAEA163D0160E10EED1C899E9E",
   "checkpoint": "outputs/segformer_b0_suim_v2_scene/checkpoints/best.pt",
   "checkpoint_sha256": "62CF10BA021B7E24429477C9C9C4690650EB0945D39E19DA0A8DEB3BB1132A5A",
+  "degradation_config": "configs/degradation_pilot.yaml",
+  "degradation_config_sha256": "706A1DA10870C0659CD9CC35D8472F22FC727B2292933FEBD26961BB7666CF93",
   "cache_entries": 26,
   "result_rows": 104,
   "methods": [
@@ -26,5 +28,6 @@
     "ece": 1.487885824502655e-05
   },
   "cache_logits_dtype": "float16",
+  "cache_integrity_verified": true,
   "segmentation_invariants_verified": true
 }

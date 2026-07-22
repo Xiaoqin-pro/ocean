@@ -48,6 +48,32 @@ def load_yaml(path: Path) -> dict[str, Any]:
         return yaml.safe_load(handle)
 
 
+def validate_cache_payload(
+    payload: dict[str, Any],
+    *,
+    split: str,
+    condition: str,
+    checkpoint_sha256: str,
+    degradation_config_sha256: str,
+) -> None:
+    """Fail closed when a frozen-logit cache does not match this protocol."""
+    if payload.get("split") != split or payload.get("condition") != condition:
+        raise ValueError(f"Cache metadata does not match {split}/{condition}.")
+    if payload.get("checkpoint_sha256") != checkpoint_sha256:
+        raise ValueError(f"Cache checkpoint hash mismatch for {split}/{condition}.")
+    if payload.get("degradation_config_sha256") != degradation_config_sha256:
+        raise ValueError(f"Cache degradation-config hash mismatch for {split}/{condition}.")
+    sample_ids = payload.get("sample_id")
+    logits = payload.get("logits")
+    labels = payload.get("labels")
+    if not isinstance(sample_ids, list) or logits is None or labels is None:
+        raise ValueError(f"Cache is missing sample IDs, logits, or labels for {split}/{condition}.")
+    if len(sample_ids) != len(logits) or len(sample_ids) != len(labels):
+        raise ValueError(f"Cache sample/logit/label counts differ for {split}/{condition}.")
+    if len({str(sample_id) for sample_id in sample_ids}) != len(sample_ids):
+        raise ValueError(f"Cache contains duplicate sample IDs for {split}/{condition}.")
+
+
 def temperature_for(method: str, payload: dict[str, Any], temperatures: dict[str, Any]) -> float:
     if method == "raw":
         return 1.0
@@ -131,6 +157,8 @@ def main() -> None:
     if not temperature_path.is_file():
         raise FileNotFoundError("Fit temperatures before cached evaluation.")
     temperatures = json.loads(temperature_path.read_text(encoding="utf-8"))
+    expected_checkpoint_sha256 = sha256(ROOT / experiment["checkpoint"])
+    expected_degradation_config_sha256 = sha256(ROOT / experiment["degradation_config"])
     rows: list[dict[str, Any]] = []
     per_class: list[dict[str, Any]] = []
     raw_segmentation: dict[tuple[str, str], dict[str, Any]] = {}
@@ -140,8 +168,13 @@ def main() -> None:
             if not cache_path.is_file():
                 raise FileNotFoundError(cache_path)
             payload = torch.load(cache_path, map_location="cpu", weights_only=False)
-            if payload.get("split") != split or payload.get("condition") != condition:
-                raise ValueError(f"Cache metadata does not match {cache_path}.")
+            validate_cache_payload(
+                payload,
+                split=split,
+                condition=condition,
+                checkpoint_sha256=expected_checkpoint_sha256,
+                degradation_config_sha256=expected_degradation_config_sha256,
+            )
             for method in METHODS:
                 temperature = temperature_for(method, payload, temperatures)
                 metrics = evaluate_cache(payload, temperature)
@@ -173,10 +206,11 @@ def main() -> None:
     pd.DataFrame(per_class).to_csv(output / "per_class_metrics.csv", index=False)
     metadata = {
         "config": str(config_path.relative_to(ROOT)), "config_sha256": sha256(config_path),
-        "checkpoint": experiment["checkpoint"], "checkpoint_sha256": sha256(ROOT / experiment["checkpoint"]),
+        "checkpoint": experiment["checkpoint"], "checkpoint_sha256": expected_checkpoint_sha256,
+        "degradation_config": experiment["degradation_config"], "degradation_config_sha256": expected_degradation_config_sha256,
         "cache_entries": 26, "result_rows": 104, "methods": list(METHODS), "splits_evaluated": list(SPLITS),
         "official_test_evaluated": False, "model_retrained": False, "raw_cache_vs_frozen_pilot_max_abs_difference": raw_differences,
-        "cache_logits_dtype": "float16", "segmentation_invariants_verified": True,
+        "cache_logits_dtype": "float16", "cache_integrity_verified": True, "segmentation_invariants_verified": True,
     }
     (output / "evaluation_metadata.json").write_text(json.dumps(json_safe(metadata), ensure_ascii=False, indent=2), encoding="utf-8")
 
