@@ -1,0 +1,11 @@
+{
+  "radii": [
+    1,
+    3,
+    5
+  ],
+  "bootstrap_iterations": 1000,
+  "cluster_unit": "sample_id_with_all_13_conditions",
+  "gt_boundary_diagnostic_only": true,
+  "official_test_evaluated": false
+}

@@ -67,12 +67,17 @@ class RegionStats:
         ece = float(np.sum((self.bin_count / self.count) * np.abs(accuracy - confidence)))
         all_confidence = np.concatenate(self.confidence)
         errors = np.concatenate(self.errors)
+        error_rate = float(errors.mean())
         uncertainty = 1.0 - all_confidence
         auroc = float("nan") if errors.min() == errors.max() else float(roc_auc_score(errors, uncertainty))
         order = np.argsort(uncertainty)
         risk = np.cumsum(errors[order], dtype=np.float64) / np.arange(1, len(errors) + 1)
         coverage = np.arange(1, len(errors) + 1, dtype=np.float64) / len(errors)
-        return {"pixels": self.count, "nll": self.nll_sum / self.count, "brier_score": self.brier_sum / self.count, "ece": ece, "error_auroc": auroc, "aurc": float(np.trapezoid(risk, coverage)), "mean_wrong_confidence": float(all_confidence[errors].mean()) if errors.any() else float("nan")}
+        aurc = float(np.trapezoid(risk, coverage))
+        oracle_errors = np.concatenate([np.zeros((len(errors) - int(errors.sum()),), dtype=bool), np.ones((int(errors.sum()),), dtype=bool)])
+        oracle_risk = np.cumsum(oracle_errors, dtype=np.float64) / np.arange(1, len(oracle_errors) + 1)
+        oracle_aurc = float(np.trapezoid(oracle_risk, coverage))
+        return {"pixels": self.count, "error_rate": error_rate, "nll": self.nll_sum / self.count, "brier_score": self.brier_sum / self.count, "ece": ece, "error_auroc": auroc, "aurc": aurc, "oracle_aurc": oracle_aurc, "eaurc": aurc - oracle_aurc, "mean_wrong_confidence": float(all_confidence[errors].mean()) if errors.any() else float("nan")}
 
 
 def boundary_mask(labels: torch.Tensor, radius: int) -> torch.Tensor:
