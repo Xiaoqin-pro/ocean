@@ -5,6 +5,7 @@ import pytest
 import torch
 from sklearn.metrics import average_precision_score
 
+from calibration.ranking_fusion import FEATURE_NAMES, fit_logistic_fusion, fusion_score
 from metrics.uncertainty_ranking import SCORE_NAMES, ranking_metrics, uncertainty_scores
 from scripts.evaluate_uncertainty_ranking import validate_benchmark_protocol
 
@@ -74,3 +75,11 @@ def test_ranking_metrics_reject_invalid_scores_and_test_protocol() -> None:
         ranking_metrics(np.array([0.1, np.nan]), np.array([False, True]))
     with pytest.raises(ValueError, match="official TEST"):
         validate_benchmark_protocol({"experiment": {"splits": ["val", "test"], "conditions": ["clean"]}})
+
+
+def test_logistic_fusion_is_calibration_only_and_scores_errors_higher() -> None:
+    features = np.array([[0.05, 0.0, 0.1], [0.10, 0.0, 0.2], [0.8, 0.7, 0.9], [0.9, 0.8, 0.95]], dtype=np.float32)
+    scaler, classifier, parameters = fit_logistic_fusion(features, np.array([0, 0, 1, 1]), c=1.0)
+    scores = fusion_score(features, scaler, classifier)
+    assert parameters.feature_names == FEATURE_NAMES
+    assert scores[2:].mean() > scores[:2].mean()
