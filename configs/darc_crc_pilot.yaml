@@ -31,6 +31,7 @@ quality:
   grouping: kmeans
   groups: 3
   minimum_calibration_clusters: 80
+  descriptor_long_side: 192
   seeds: [20260722, 20260723, 20260724]
 
 bootstrap:

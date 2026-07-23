@@ -112,7 +112,7 @@ def _coverage_indices_quality(assignments: pd.DataFrame, *, conditions: list[str
 
 
 def _image_aurc(curve: np.ndarray, coverages: np.ndarray) -> float:
-    return float(np.trapz(curve, x=coverages))
+    return float(np.trapezoid(curve, x=coverages))
 
 
 def _oracle_curve(error_rate: float, coverages: np.ndarray) -> np.ndarray:

@@ -15,6 +15,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import yaml
+import cv2
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,7 +38,18 @@ def sha256(path: Path) -> str:
     return digest.hexdigest().upper()
 
 
-def _load_rows(split_csv: Path, conditions: list[Any]) -> pd.DataFrame:
+def _resize_for_descriptor(image: np.ndarray, long_side: int) -> np.ndarray:
+    if long_side < 32:
+        raise ValueError("descriptor_long_side must be at least 32 pixels.")
+    height, width = image.shape[:2]
+    scale = min(1.0, long_side / max(height, width))
+    if scale == 1.0:
+        return image
+    size = (max(1, round(width * scale)), max(1, round(height * scale)))
+    return cv2.resize(image, size, interpolation=cv2.INTER_AREA)
+
+
+def _load_rows(split_csv: Path, conditions: list[Any], *, descriptor_long_side: int) -> pd.DataFrame:
     rows = pd.read_csv(split_csv)
     required = {"sample_id", "image_path", "mask_path"}
     if rows.empty or required - set(rows.columns) or rows["sample_id"].duplicated().any():
@@ -49,6 +61,7 @@ def _load_rows(split_csv: Path, conditions: list[Any]) -> pd.DataFrame:
             raise FileNotFoundError(image_path)
         with Image.open(image_path) as handle:
             image = np.asarray(handle.convert("RGB"), dtype=np.uint8)
+        image = _resize_for_descriptor(image, descriptor_long_side)
         for condition in conditions:
             degraded = build_image_degradation(condition)(image, str(sample.sample_id))
             values = image_quality_descriptors(degraded)
@@ -92,9 +105,10 @@ def main() -> None:
         raise ValueError("DARC conditions must exactly match the frozen 13-condition registry.")
     output = ROOT / experiment["output_dir"] / "descriptors"
     output.mkdir(parents=True, exist_ok=True)
-    train = _load_rows(split_dir / "train.csv", conditions)
-    calibration = _load_rows(split_dir / "calibration.csv", conditions)
-    validation = _load_rows(split_dir / "val.csv", conditions)
+    descriptor_long_side = int(quality["descriptor_long_side"])
+    train = _load_rows(split_dir / "train.csv", conditions, descriptor_long_side=descriptor_long_side)
+    calibration = _load_rows(split_dir / "calibration.csv", conditions, descriptor_long_side=descriptor_long_side)
+    validation = _load_rows(split_dir / "val.csv", conditions, descriptor_long_side=descriptor_long_side)
     train.to_csv(output / "train_descriptors.csv", index=False)
     calibration.to_csv(output / "calibration_descriptors.csv", index=False)
     validation.to_csv(output / "val_descriptors.csv", index=False)
@@ -117,7 +131,7 @@ def main() -> None:
         validation_assigned.to_csv(output / f"val_assignments_seed_{seed}.csv", index=False)
         records.append({"seed": int(seed), "requested_groups": int(quality["groups"]), "effective_groups": effective_groups, "calibration_cluster_counts": {str(key): int(value) for key, value in calibration_counts.items()}, "minimum_calibration_clusters": int(quality["minimum_calibration_clusters"]), "fallback_required": bool(int(calibration_counts.min()) < int(quality["minimum_calibration_clusters"])), "grouping_path": str((output / f"grouping_seed_{seed}.npz").relative_to(ROOT))})
         print(f"seed={seed}; effective_groups={effective_groups}; calibration_clusters={calibration_counts.to_dict()}")
-    metadata = {"config_sha256": sha256(config_path), "degradation_config_sha256": sha256(ROOT / experiment["degradation_config"]), "descriptor_names": list(DESCRIPTOR_NAMES), "train_rows": len(train), "calibration_rows": len(calibration), "val_rows": len(validation), "groupings": records, "labels_used": False, "validation_used_for_fitting": False, "official_test_evaluated": False, "model_retrained": False}
+    metadata = {"config_sha256": sha256(config_path), "degradation_config_sha256": sha256(ROOT / experiment["degradation_config"]), "descriptor_names": list(DESCRIPTOR_NAMES), "descriptor_long_side": descriptor_long_side, "train_rows": len(train), "calibration_rows": len(calibration), "val_rows": len(validation), "groupings": records, "labels_used": False, "validation_used_for_fitting": False, "official_test_evaluated": False, "model_retrained": False}
     (output / "metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
