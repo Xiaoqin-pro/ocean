@@ -1,0 +1,46 @@
+experiment:
+  source_tag: v0.7-ranking-fusion-negative-control
+  checkpoint: outputs/segformer_b0_suim_v2_scene/checkpoints/best.pt
+  cache_dir: outputs/temperature_scaling/cache
+  degradation_config: configs/degradation_pilot.yaml
+  baseline_config: configs/baseline/segformer_b0_suim_v2_scene.yaml
+  train_split: train
+  fit_split: calibration
+  evaluation_split: val
+  conditions: [clean, color_s1, color_s2, color_s3, turbidity_s1, turbidity_s2, turbidity_s3, lowlight_s1, lowlight_s2, lowlight_s3, blur_s1, blur_s2, blur_s3]
+  output_dir: outputs/darc_crc
+  official_test_locked: true
+
+ranking:
+  primary_score: raw_msp
+  baselines: [calibrated_msp, probability_margin]
+  clean_temperature: 2.197198903975547
+
+risk:
+  targets: [0.05, 0.10, 0.15]
+  coverage_grid_start: 0.01
+  coverage_grid_stop: 1.00
+  coverage_grid_step: 0.01
+  use_monotone_envelope: true
+  cluster_unit: sample_id_with_all_13_conditions
+  crc_bound: 1.0
+
+quality:
+  descriptors: [mean_luminance, luminance_std, luminance_p10, mean_saturation, log_r_over_g, log_b_over_g, normalized_laplacian_variance, dark_channel_mean]
+  scaler_fit_split: train
+  grouping: kmeans
+  groups: 3
+  minimum_calibration_clusters: 80
+  seeds: [20260722, 20260723, 20260724]
+
+bootstrap:
+  iterations: 1000
+  seed: 20260722
+  cluster_unit: sample_id
+
+protocol:
+  ground_truth_boundary_as_input: false
+  degradation_label_as_input: false
+  validation_used_for_fitting: false
+  official_test_evaluated: false
+  model_retrained: false
