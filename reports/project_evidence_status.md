@@ -15,6 +15,14 @@
 - Calibration-only logistic ranking fusion.
 - Boundary, spatial-temperature, or error-ranking neural refinement.
 
-## Next hypothesis
+## Exploratory signal requiring independent confirmation
 
-Image-clustered conformal risk control may control accepted-pixel error risk under the preregistered 13-condition mixture.  A deployable, train-only image-quality grouping is evaluated only if it recovers meaningful coverage headroom over global CRC.  The official TEST remains locked.
+The broad DARC-Seg hypothesis did not pass its preregistered three-risk-target
+gate.  At the exploratory operating point `alpha=0.10`, however, train-only
+quality grouping improved validation coverage by 4.52--5.90pp over global CRC
+without a low-light safety deterioration.  This is not a final claim and must
+not be tuned further on SUIM validation.
+
+The only permitted continuation is a separately preregistered UIIS confirmation
+at `alpha=0.10`, after exact and near-duplicate auditing against all SUIM
+partitions.  The SUIM official TEST remains locked.

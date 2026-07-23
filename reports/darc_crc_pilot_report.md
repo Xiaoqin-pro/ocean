@@ -34,9 +34,10 @@ risk 0.0611) and the quality grouping yielded positive 95% paired,
 image-clustered bootstrap coverage intervals (about +3.2pp to +7.3pp,
 depending on seed). The severe low-light risk did not worsen at that target.
 
-## Gate decision: stop
+## Gate decision: stop the broad method claim
 
-The DARC-Seg pilot does **not** pass the preregistered expansion gates.
+The DARC-Seg pilot does **not** pass the preregistered expansion gates for a
+method claimed to work uniformly across risk targets.
 
 1. Oracle condition CRC has substantial headroom only at `alpha=0.10`; it has
    0.23pp and 0.54pp gains at `alpha=0.05` and `alpha=0.15`. Its across-target
@@ -50,4 +51,14 @@ The DARC-Seg pilot does **not** pass the preregistered expansion gates.
 
 This is a useful negative result: global image-clustered CRC is a valid,
 conservative baseline for this preregistered mixture, but there is insufficient
-robust oracle headroom for the proposed degradation-aware deployment method.
+robust oracle headroom for a universally degradation-aware deployment method.
+
+### Exploratory, independently confirmable signal
+
+At `alpha=0.10` only, the quality-group controller improved coverage by
+4.52--5.90pp, with positive 95% cluster-bootstrap intervals, and did not
+worsen severe low-light risk. This operating point was selected after seeing
+SUIM validation and is therefore exploratory. It may only be pursued through a
+new, frozen `alpha=0.10` protocol on an independent dataset; it cannot be
+promoted to a final SUIM claim or used to retune descriptors, grouping, seeds,
+or conditions on the present validation split.
