@@ -1,0 +1,17 @@
+{
+  "uiis_images": 4628,
+  "suim_images_audited": 1569,
+  "suim_partitions_audited": [
+    "train",
+    "val",
+    "calibration",
+    "test"
+  ],
+  "exact_pairs": 331,
+  "strict_phash_candidates": 1314,
+  "phash_threshold": 4,
+  "uiis_exact_duplicate_images": 12,
+  "official_suim_test_evaluated": false,
+  "official_suim_test_used_for_duplicate_audit_only": true,
+  "model_retrained": false
+}

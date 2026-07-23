@@ -1,0 +1,11 @@
+{
+  "protocol_status": "automatic_conservative_scene_groups_complete",
+  "admitted_images": 3390,
+  "scene_group_count": 2508,
+  "multi_image_scene_group_count": 737,
+  "largest_scene_group": 5,
+  "exact_sha256_edges": 0,
+  "phash_threshold": 2,
+  "phash_edges": 1057,
+  "policy": "Exact SHA-256 and pHash<=2 pairs are bound into a common split; they are not used to select model settings."
+}

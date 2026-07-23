@@ -1,0 +1,51 @@
+{
+  "source": "LiamLian0727/UIIS",
+  "source_partitions": [
+    "train",
+    "val"
+  ],
+  "images": 4628,
+  "semantic_classes": 8,
+  "background_class": 0,
+  "uiis_category_to_suim_class": {
+    "1": 6,
+    "2": 5,
+    "3": 2,
+    "4": 3,
+    "5": 1,
+    "6": 4,
+    "7": 7
+  },
+  "overlap_policy": "descending_instance_area_then_annotation_id; later_smaller_instance_overwrites",
+  "partitions": {
+    "train": {
+      "images": 3937,
+      "empty_masks": 0,
+      "bad_image_dimensions": 0,
+      "annotations": 24626,
+      "polygon_parts": 24897,
+      "cross_class_overlap_pixels": 8363601,
+      "same_class_overlap_pixels": 2172808
+    },
+    "val": {
+      "images": 691,
+      "empty_masks": 0,
+      "bad_image_dimensions": 0,
+      "annotations": 3784,
+      "polygon_parts": 3835,
+      "cross_class_overlap_pixels": 1782452,
+      "same_class_overlap_pixels": 291582
+    }
+  },
+  "total": {
+    "images": 4628,
+    "empty_masks": 0,
+    "bad_image_dimensions": 0,
+    "annotations": 28410,
+    "polygon_parts": 28732,
+    "cross_class_overlap_pixels": 10146053,
+    "same_class_overlap_pixels": 2464390
+  },
+  "official_suim_test_evaluated": false,
+  "model_retrained": false
+}
