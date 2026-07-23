@@ -1,0 +1,20 @@
+experiment:
+  checkpoint: outputs/segformer_b0_suim_v2_scene/checkpoints/best.pt
+  degradation_config: configs/degradation_pilot.yaml
+  temperature_file: outputs/temperature_scaling/temperatures.json
+  cache_dir: outputs/temperature_scaling/cache
+  output_dir: outputs/ranking_fusion
+  fit_split: calibration
+  evaluation_split: val
+  conditions: [clean, color_s1, color_s2, color_s3, turbidity_s1, turbidity_s2, turbidity_s3, lowlight_s1, lowlight_s2, lowlight_s3, blur_s1, blur_s2, blur_s3]
+fit:
+  samples_per_image: 685
+  regularization_c: 1.0
+  seed: 20260722
+metrics:
+  boundary_radius: 3
+  coverages: [0.9, 0.8, 0.7]
+  top_uncertainty_fractions: [0.05, 0.1, 0.2]
+bootstrap:
+  iterations: 1000
+  seed: 20260722
