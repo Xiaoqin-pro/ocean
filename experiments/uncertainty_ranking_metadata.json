@@ -1,0 +1,38 @@
+{
+  "config": "configs\\uncertainty_ranking.yaml",
+  "config_sha256": "6A39E16FACA965528EF10FB733D8125B03214E80FED0128BAA4ABB3CE6788838",
+  "checkpoint_sha256": "62CF10BA021B7E24429477C9C9C4690650EB0945D39E19DA0A8DEB3BB1132A5A",
+  "degradation_config_sha256": "706A1DA10870C0659CD9CC35D8472F22FC727B2292933FEBD26961BB7666CF93",
+  "temperature": 2.197198903975547,
+  "conditions": [
+    "clean",
+    "color_s1",
+    "color_s2",
+    "color_s3",
+    "turbidity_s1",
+    "turbidity_s2",
+    "turbidity_s3",
+    "lowlight_s1",
+    "lowlight_s2",
+    "lowlight_s3",
+    "blur_s1",
+    "blur_s2",
+    "blur_s3"
+  ],
+  "scores": [
+    "raw_msp",
+    "calibrated_msp",
+    "entropy",
+    "probability_margin",
+    "logit_margin",
+    "energy",
+    "local_disagreement"
+  ],
+  "split_evaluated": "val",
+  "official_test_evaluated": false,
+  "model_retrained": false,
+  "boundary_is_evaluation_stratum_only": true,
+  "formal_run": true,
+  "result_rows": 273,
+  "per_image_rows": 39858
+}
