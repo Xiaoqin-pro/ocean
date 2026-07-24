@@ -1,0 +1,24 @@
+experiment:
+  source_protocol: UIIS_alpha010_confirmation_v1
+  calibration_curves: outputs/uiis_alpha010_crc/risk_curves/calibration.npz
+  confirmation_curves: outputs/uiis_alpha010_crc/risk_curves/confirmation.npz
+  descriptors_dir: outputs/uiis_alpha010_crc/descriptors
+  output_dir: outputs/uiis_crc_sensitivity
+  conditions: [clean, color_s1, color_s2, color_s3, turbidity_s1, turbidity_s2, turbidity_s3, lowlight_s1, lowlight_s2, lowlight_s3, blur_s1, blur_s2, blur_s3]
+  official_suim_test_locked: true
+risk:
+  targets: [0.05, 0.10, 0.15]
+  crc_bound: 1.0
+quality:
+  groups: 3
+  minimum_calibration_clusters: 80
+  seeds: [20260722, 20260723, 20260724]
+bootstrap:
+  iterations: 1000
+  seed: 20260724
+protocol:
+  external_benchmark_extension: true
+  confirmation_previously_opened_for_darc_negative_control: true
+  confirmation_used_for_fitting: false
+  official_suim_test_evaluated: false
+  model_retrained: false

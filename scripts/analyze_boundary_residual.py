@@ -77,7 +77,7 @@ class RegionStats:
         oracle_errors = np.concatenate([np.zeros((len(errors) - int(errors.sum()),), dtype=bool), np.ones((int(errors.sum()),), dtype=bool)])
         oracle_risk = np.cumsum(oracle_errors, dtype=np.float64) / np.arange(1, len(oracle_errors) + 1)
         oracle_aurc = float(np.trapezoid(oracle_risk, coverage))
-        return {"pixels": self.count, "error_rate": error_rate, "nll": self.nll_sum / self.count, "brier_score": self.brier_sum / self.count, "ece": ece, "error_auroc": auroc, "aurc": aurc, "oracle_aurc": oracle_aurc, "eaurc": aurc - oracle_aurc, "mean_wrong_confidence": float(all_confidence[errors].mean()) if errors.any() else float("nan")}
+        return {"pixels": self.count, "error_rate": error_rate, "nll": self.nll_sum / self.count, "brier_score": self.brier_sum / self.count, "ece": ece, "error_auroc": auroc, "aurc": aurc, "oracle_aurc": oracle_aurc, "eaurc": aurc - oracle_aurc, "mean_confidence": float(all_confidence.mean()), "mean_wrong_confidence": float(all_confidence[errors].mean()) if errors.any() else float("nan")}
 
 
 def boundary_mask(labels: torch.Tensor, radius: int) -> torch.Tensor:
@@ -87,27 +87,96 @@ def boundary_mask(labels: torch.Tensor, radius: int) -> torch.Tensor:
     return maximum[:, 0].ne(minimum[:, 0])
 
 
+def pixel_summary(probabilities: torch.Tensor, labels: torch.Tensor, region: torch.Tensor) -> dict[str, float | int]:
+    """Return additive per-image statistics for one evaluation region."""
+    classes = probabilities.shape[1]
+    probs = probabilities.permute(0, 2, 3, 1)[region].detach().float().cpu().numpy()
+    target = labels[region].detach().cpu().numpy()
+    if not len(target):
+        return {"pixels": 0, "errors": 0, "nll_sum": 0.0, "brier_sum": 0.0, "confidence_sum": 0.0, "wrong_confidence_sum": 0.0, "wrong_pixels": 0}
+    prediction = probs.argmax(axis=1)
+    confidence = probs.max(axis=1)
+    errors = prediction != target
+    return {
+        "pixels": int(len(target)),
+        "errors": int(errors.sum()),
+        "nll_sum": float(-np.log(np.clip(probs[np.arange(len(target)), target], 1e-12, 1.0)).sum()),
+        "brier_sum": float(np.square(probs - np.eye(classes, dtype=np.float32)[target]).sum()),
+        "confidence_sum": float(confidence.sum()),
+        "wrong_confidence_sum": float(confidence[errors].sum()),
+        "wrong_pixels": int(errors.sum()),
+    }
+
+
+def bootstrap_boundary_error_gap(per_image: pd.DataFrame, iterations: int, seed: int) -> pd.DataFrame:
+    """Cluster-bootstrap boundary minus interior error rate by original image."""
+    rows: list[dict[str, object]] = []
+    for index, ((condition, method), group) in enumerate(per_image.groupby(["condition", "method"], sort=True)):
+        pivot = group.pivot(index="sample_id", columns="region", values=["pixels", "errors"]).dropna()
+        boundary_pixels = pivot[("pixels", "boundary")].to_numpy(dtype=np.float64)
+        interior_pixels = pivot[("pixels", "interior")].to_numpy(dtype=np.float64)
+        boundary_errors = pivot[("errors", "boundary")].to_numpy(dtype=np.float64)
+        interior_errors = pivot[("errors", "interior")].to_numpy(dtype=np.float64)
+        if len(pivot) == 0 or (boundary_pixels <= 0).any() or (interior_pixels <= 0).any():
+            raise ValueError(f"Boundary bootstrap requires both regions for every image: {condition}/{method}.")
+        observed = boundary_errors.sum() / boundary_pixels.sum() - interior_errors.sum() / interior_pixels.sum()
+        generator = np.random.default_rng(seed + index)
+        draws = generator.integers(0, len(pivot), size=(iterations, len(pivot)))
+        sampled = boundary_errors[draws].sum(axis=1) / boundary_pixels[draws].sum(axis=1)
+        sampled -= interior_errors[draws].sum(axis=1) / interior_pixels[draws].sum(axis=1)
+        rows.append({
+            "condition": condition,
+            "method": method,
+            "cluster_unit": "original_sample_id",
+            "samples": int(len(pivot)),
+            "iterations": iterations,
+            "boundary_minus_interior_error_rate": float(observed),
+            "ci95_low": float(np.quantile(sampled, 0.025)),
+            "ci95_high": float(np.quantile(sampled, 0.975)),
+        })
+    return pd.DataFrame(rows)
+
+
+def atomic_csv(frame: pd.DataFrame, destination: Path) -> None:
+    temporary = destination.with_suffix(destination.suffix + ".tmp")
+    frame.to_csv(temporary, index=False)
+    temporary.replace(destination)
+
+
+def resolve_boundary_cache_context(experiment: dict[str, object]) -> tuple[str, Path]:
+    """Resolve the registered non-test split and its frozen cache location."""
+    splits = list(experiment["splits"])
+    if splits not in (["calibration", "val"], ["calibration", "confirmation"]):
+        raise ValueError("Official TEST is locked.")
+    evaluation_split = str(experiment.get("evaluation_split", "val"))
+    if evaluation_split not in set(splits):
+        raise ValueError("Boundary evaluation split is not registered in the frozen cache protocol.")
+    cache_dir = experiment.get("cache_dir")
+    if cache_dir is None:
+        cache_dir = f"{experiment['output_dir']}/cache"
+    cache_root = ROOT / str(cache_dir) / evaluation_split
+    return evaluation_split, cache_root
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Analyze residual calibration by boundary/interior region from frozen validation caches.")
     parser.add_argument("--config", type=Path, default=ROOT / "configs" / "temperature_scaling.yaml")
     parser.add_argument("--radius", type=int, default=3)
+    parser.add_argument("--bootstrap-iterations", type=int, default=1000)
+    parser.add_argument("--bootstrap-seed", type=int, default=20260724)
     args = parser.parse_args()
     config = load_yaml(args.config.resolve())
     experiment = config["experiment"]
-    if list(experiment["splits"]) not in (["calibration", "val"], ["calibration", "confirmation"]):
-        raise ValueError("Official TEST is locked.")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     temperatures = json.loads((ROOT / experiment["output_dir"] / "temperatures.json").read_text(encoding="utf-8"))
     expected_checkpoint = sha256(ROOT / experiment["checkpoint"])
     expected_degradation = sha256(ROOT / experiment["degradation_config"])
-    evaluation_split = str(experiment.get("evaluation_split", "val"))
-    if evaluation_split not in set(experiment["splits"]):
-        raise ValueError("Boundary evaluation split is not registered in the frozen cache protocol.")
-    cache_root = ROOT / experiment.get("cache_dir", f"{experiment['output_dir']}/cache") / evaluation_split
+    evaluation_split, cache_root = resolve_boundary_cache_context(experiment)
     rows: list[dict[str, object]] = []
+    per_image_rows: list[dict[str, object]] = []
     for condition in CONDITIONS:
         payload = torch.load(cache_root / f"{condition}.pt", map_location="cpu", weights_only=False)
-        validate_cache_payload(payload, split="val", condition=condition, checkpoint_sha256=expected_checkpoint, degradation_config_sha256=expected_degradation)
+        validate_cache_payload(payload, split=evaluation_split, condition=condition, checkpoint_sha256=expected_checkpoint, degradation_config_sha256=expected_degradation)
         accumulators = {(method, region): RegionStats(int(config["metrics"]["ece_bins"])) for method in ("raw", "clean_global") for region in ("boundary", "interior")}
         for start in range(0, len(payload["labels"]), 4):
             labels = payload["labels"][start:start + 4].to(device)
@@ -120,12 +189,38 @@ def main() -> None:
             for method, values in probabilities.items():
                 for region, mask in regions.items():
                     accumulators[(method, region)].update(values, labels, mask)
+            for image_index, sample_id in enumerate(payload["sample_id"][start:start + len(labels)]):
+                for method, values in probabilities.items():
+                    for region, mask in regions.items():
+                        summary = pixel_summary(values[image_index:image_index + 1], labels[image_index:image_index + 1], mask[image_index:image_index + 1])
+                        per_image_rows.append({"split": evaluation_split, "condition": condition, "method": method, "sample_id": sample_id, "region": region, "boundary_radius": args.radius, **summary})
+        valid_pixels = sum(accumulator.count for (method, _), accumulator in accumulators.items() if method == "raw")
         for (method, region), accumulator in accumulators.items():
-            rows.append({"condition": condition, "method": method, "region": region, "boundary_radius": args.radius, **accumulator.result()})
+            rows.append({"condition": condition, "method": method, "region": region, "boundary_radius": args.radius, "region_pixel_fraction": accumulator.count / valid_pixels, **accumulator.result()})
         print(f"processed {condition}")
     output = ROOT / experiment.get("boundary_output_dir", "outputs/residual_calibration_analysis")
     output.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(rows).to_csv(output / "boundary_interior_metrics.csv", index=False)
+    aggregate = pd.DataFrame(rows)
+    per_image = pd.DataFrame(per_image_rows)
+    bootstrap = bootstrap_boundary_error_gap(per_image, args.bootstrap_iterations, args.bootstrap_seed)
+    atomic_csv(aggregate, output / "boundary_interior_metrics.csv")
+    atomic_csv(per_image, output / "boundary_per_image_metrics.csv")
+    atomic_csv(bootstrap, output / "boundary_error_gap_bootstrap.csv")
+    metadata = {
+        "split_evaluated": evaluation_split,
+        "conditions": CONDITIONS,
+        "boundary_radius": args.radius,
+        "bootstrap_iterations": args.bootstrap_iterations,
+        "bootstrap_seed": args.bootstrap_seed,
+        "cluster_unit": "original_sample_id",
+        "checkpoint_sha256": expected_checkpoint,
+        "degradation_config_sha256": expected_degradation,
+        "official_suim_test_evaluated": False,
+        "model_retrained": False,
+    }
+    temporary = output / "boundary_metadata.json.tmp"
+    temporary.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    temporary.replace(output / "boundary_metadata.json")
 
 
 if __name__ == "__main__":
