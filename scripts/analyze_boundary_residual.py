@@ -94,13 +94,16 @@ def main() -> None:
     args = parser.parse_args()
     config = load_yaml(args.config.resolve())
     experiment = config["experiment"]
-    if list(experiment["splits"]) != ["calibration", "val"]:
+    if list(experiment["splits"]) not in (["calibration", "val"], ["calibration", "confirmation"]):
         raise ValueError("Official TEST is locked.")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     temperatures = json.loads((ROOT / experiment["output_dir"] / "temperatures.json").read_text(encoding="utf-8"))
     expected_checkpoint = sha256(ROOT / experiment["checkpoint"])
     expected_degradation = sha256(ROOT / experiment["degradation_config"])
-    cache_root = ROOT / experiment["output_dir"] / "cache" / "val"
+    evaluation_split = str(experiment.get("evaluation_split", "val"))
+    if evaluation_split not in set(experiment["splits"]):
+        raise ValueError("Boundary evaluation split is not registered in the frozen cache protocol.")
+    cache_root = ROOT / experiment.get("cache_dir", f"{experiment['output_dir']}/cache") / evaluation_split
     rows: list[dict[str, object]] = []
     for condition in CONDITIONS:
         payload = torch.load(cache_root / f"{condition}.pt", map_location="cpu", weights_only=False)

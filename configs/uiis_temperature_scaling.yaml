@@ -1,0 +1,17 @@
+experiment:
+  output_dir: outputs/uiis_temperature_scaling
+  cache_dir: outputs/uiis_alpha010_crc/cache
+  checkpoint: outputs/segformer_b0_uiis_alpha010_confirmation/checkpoints/last.pt
+  degradation_config: configs/degradation_pilot.yaml
+  splits: [calibration, confirmation]
+  evaluation_split: confirmation
+  boundary_output_dir: outputs/uiis_boundary_analysis
+  external_benchmark_extension: true
+fitting:
+  method: lbfgs
+  min_temperature: 0.05
+  max_temperature: 20.0
+  max_iter: 100
+  objective_weighting: pixel_weighted
+metrics:
+  ece_bins: 15

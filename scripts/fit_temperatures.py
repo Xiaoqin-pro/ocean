@@ -9,7 +9,7 @@ ROOT=Path(__file__).resolve().parents[1]; sys.path.insert(0,str(ROOT))
 from calibration.temperature_scaling import fit_temperature_from_batches
 SCOPES={'clean':['clean'],'pooled':['clean','color_s1','color_s2','color_s3','turbidity_s1','turbidity_s2','turbidity_s3','lowlight_s1','lowlight_s2','lowlight_s3','blur_s1','blur_s2','blur_s3'],'color':['color_s1','color_s2','color_s3'],'turbidity':['turbidity_s1','turbidity_s2','turbidity_s3'],'lowlight':['lowlight_s1','lowlight_s2','lowlight_s3'],'blur':['blur_s1','blur_s2','blur_s3']}
 def main():
- p=argparse.ArgumentParser();p.add_argument('--config',type=Path,default=ROOT/'configs/temperature_scaling.yaml');a=p.parse_args(); c=yaml.safe_load(a.config.read_text(encoding='utf-8')); e=c['experiment']; cache=ROOT/e['output_dir']/'cache'; out=ROOT/e['output_dir']; out.mkdir(parents=True,exist_ok=True)
+ p=argparse.ArgumentParser();p.add_argument('--config',type=Path,default=ROOT/'configs/temperature_scaling.yaml');a=p.parse_args(); c=yaml.safe_load(a.config.read_text(encoding='utf-8')); e=c['experiment']; cache=ROOT/e.get('cache_dir',f"{e['output_dir']}/cache"); out=ROOT/e['output_dir']; out.mkdir(parents=True,exist_ok=True)
  def factory(names):
   def batches():
    for name in names:

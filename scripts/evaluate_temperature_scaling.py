@@ -149,10 +149,10 @@ def main() -> None:
     config_path = args.config.resolve()
     config = load_yaml(config_path)
     experiment = config["experiment"]
-    if list(experiment["splits"]) != ["calibration", "val"]:
-        raise ValueError("Only calibration and val are permitted; official TEST is locked.")
+    if list(experiment["splits"]) not in (["calibration", "val"], ["calibration", "confirmation"]):
+        raise ValueError("Only calibration plus val/confirmation are permitted; official TEST is locked.")
     output = ROOT / experiment["output_dir"]
-    cache_root = output / "cache"
+    cache_root = ROOT / experiment.get("cache_dir", str((output / "cache").relative_to(ROOT)))
     temperature_path = output / "temperatures.json"
     if not temperature_path.is_file():
         raise FileNotFoundError("Fit temperatures before cached evaluation.")
@@ -162,7 +162,7 @@ def main() -> None:
     rows: list[dict[str, Any]] = []
     per_class: list[dict[str, Any]] = []
     raw_segmentation: dict[tuple[str, str], dict[str, Any]] = {}
-    for split in SPLITS:
+    for split in tuple(experiment["splits"]):
         for condition in CONDITIONS:
             cache_path = cache_root / split / f"{condition}.pt"
             if not cache_path.is_file():
@@ -200,8 +200,8 @@ def main() -> None:
     table = pd.DataFrame(rows)
     if len(table) != 104 or table.duplicated(["method", "condition", "split"]).any():
         raise AssertionError("Expected exactly 104 uniquely keyed result rows.")
-    pilot_path = ROOT / experiment.get("pilot_metrics", "experiments/degradation_pilot_metrics.csv")
-    raw_differences = compare_raw(table, pilot_path)
+    pilot_value = experiment.get("pilot_metrics")
+    raw_differences = compare_raw(table, ROOT / pilot_value) if pilot_value else {}
     table.to_csv(output / "metrics.csv", index=False)
     pd.DataFrame(per_class).to_csv(output / "per_class_metrics.csv", index=False)
     metadata = {
