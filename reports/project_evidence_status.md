@@ -14,15 +14,24 @@
 - Entropy, energy, or local-disagreement error ranking as a new method.
 - Calibration-only logistic ranking fusion.
 - Boundary, spatial-temperature, or error-ranking neural refinement.
+- DARC-Seg quality-group CRC as a coverage-improving method.
 
-## Exploratory signal requiring independent confirmation
+## Closed negative-control result
 
 The broad DARC-Seg hypothesis did not pass its preregistered three-risk-target
-gate.  At the exploratory operating point `alpha=0.10`, however, train-only
-quality grouping improved validation coverage by 4.52--5.90pp over global CRC
-without a low-light safety deterioration.  This is not a final claim and must
-not be tuned further on SUIM validation.
+gate. Its sole exploratory operating point, alpha = 0.10, was then evaluated
+once on the independent, leakage-screened UIIS confirmation protocol.
 
-The only permitted continuation is a separately preregistered UIIS confirmation
-at `alpha=0.10`, after exact and near-duplicate auditing against all SUIM
-partitions.  The SUIM official TEST remains locked.
+All three frozen quality-group seeds reduced coverage relative to Global CRC
+(-1.63pp, -2.14pp, and -1.64pp); every paired bootstrap interval was below
+zero. Risk was slightly lower because the candidate was more conservative,
+not because it improved risk-coverage efficiency. DARC-Seg is retained as a
+negative control and must not be tuned further.
+
+## Next evidence gate
+
+The project now tests whether its reliability observations are architecture
+dependent. The minimum gate is a DeepLabV3-MobileNetV3 replication on the
+formal SUIM protocol, covering calibration versus ranking, boundary versus
+interior risk, and Global versus quality-group CRC. The UIIS CNN evaluation is
+permitted only if the predefined cross-architecture gate is met.
