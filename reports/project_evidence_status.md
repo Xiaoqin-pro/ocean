@@ -7,6 +7,11 @@
 - Clean-global temperature scaling for probability calibration.
 - Boundary residual-risk diagnosis using ground truth only as an evaluation stratum.
 - Tie-aware frozen-logit uncertainty-ranking benchmark.
+- DeepLabV3-MobileNetV3 replication on the formal SUIM protocol.  The CNN
+  architecture gate passed: scalar temperature scaling improved calibration
+  without improving ranking, boundary risk exceeded interior risk in every
+  registered condition, and quality-group CRC did not provide stable
+  risk--coverage gains.
 
 ## Not supported
 
@@ -28,10 +33,19 @@ zero. Risk was slightly lower because the candidate was more conservative,
 not because it improved risk-coverage efficiency. DARC-Seg is retained as a
 negative control and must not be tuned further.
 
+## CNN architecture gate: PASSED
+
+The SUIM reliability decomposition now holds for a Transformer baseline and a
+lightweight CNN baseline.  DARC-Seg remains rejected; this result supports the
+UWR-Bench diagnostic framing, not a new selection method.  The official SUIM
+TEST remains locked.
+
 ## Next evidence gate
 
-The project now tests whether its reliability observations are architecture
-dependent. The minimum gate is a DeepLabV3-MobileNetV3 replication on the
-formal SUIM protocol, covering calibration versus ranking, boundary versus
-interior risk, and Global versus quality-group CRC. The UIIS CNN evaluation is
-permitted only if the predefined cross-architecture gate is met.
+Extend the pre-registered reliability matrix to the leakage-screened UIIS
+protocol.  First add the registered benchmark metrics to the already trained
+UIIS SegFormer-B0 without retraining or method development.  UIIS
+DeepLabV3-MobileNetV3 training is then permitted under the fixed 60-epoch
+protocol.  UIIS confirmation is an external benchmark extension, not a new
+blind confirmation, because it was previously opened for the DARC negative
+control.
