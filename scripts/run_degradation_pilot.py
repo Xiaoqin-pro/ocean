@@ -25,6 +25,8 @@ import yaml
 from sklearn.metrics import roc_auc_score
 from torch.utils.data import DataLoader
 from transformers import SegformerForSemanticSegmentation
+from torchvision.models import MobileNet_V3_Large_Weights
+from torchvision.models.segmentation import deeplabv3_mobilenet_v3_large
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -35,6 +37,29 @@ from degradations.registry import Condition, build_image_degradation, load_condi
 from metrics.segmentation import confusion_matrix, metrics_from_confusion_matrix  # noqa: E402
 from scripts.evaluate_baseline import CalibrationAccumulator, json_safe, resize_logits  # noqa: E402
 from utils.reproducibility import set_seed  # noqa: E402
+
+
+def build_frozen_model(model_config: dict[str, Any], classes: int, checkpoint: dict[str, Any], device: torch.device) -> torch.nn.Module:
+    """Load either frozen benchmark backbone; this never updates weights."""
+    architecture = str(model_config.get("architecture", "segformer_b0"))
+    if architecture == "deeplabv3_mobilenet_v3_large":
+        name = model_config.get("backbone_weights")
+        weights = None if name is None else MobileNet_V3_Large_Weights[name]
+        model = deeplabv3_mobilenet_v3_large(weights=None, weights_backbone=weights, num_classes=classes, aux_loss=False)
+    elif architecture == "segformer_b0":
+        model = SegformerForSemanticSegmentation.from_pretrained(
+            model_config["pretrained_model"], num_labels=classes, id2label=ID2LABEL,
+            label2id=LABEL2ID, ignore_mismatched_sizes=True,
+        )
+    else:
+        raise ValueError(f"Unsupported frozen architecture: {architecture}")
+    model.load_state_dict(checkpoint["model_state_dict"])
+    return model.to(device).eval()
+
+
+def model_logits(model: torch.nn.Module, pixels: torch.Tensor) -> torch.Tensor:
+    output = model(pixel_values=pixels) if hasattr(model, "config") else model(pixels)
+    return output.logits if hasattr(output, "logits") else output["out"]
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -105,7 +130,7 @@ def evaluate_condition_split(
         pixels = batch["pixel_values"].to(device, non_blocking=True)
         labels = batch["labels"].to(device, non_blocking=True)
         with torch.amp.autocast("cuda", enabled=amp):
-            logits = resize_logits(model(pixel_values=pixels).logits, labels)
+            logits = resize_logits(model_logits(model, pixels), labels)
             loss = functional.cross_entropy(logits, labels, ignore_index=ignore_index)
             probabilities = torch.softmax(logits, dim=1)
         prediction = logits.argmax(dim=1)
@@ -148,7 +173,7 @@ def save_examples(
         pixels = item["pixel_values"].unsqueeze(0).to(device)
         labels = item["labels"]
         with torch.amp.autocast("cuda", enabled=amp):
-            logits = model(pixel_values=pixels).logits
+            logits = model_logits(model, pixels)
             logits = functional.interpolate(logits, size=labels.shape[-2:], mode="bilinear", align_corners=False)
             probabilities = torch.softmax(logits, dim=1)[0]
         prediction = probabilities.argmax(dim=0).cpu().numpy()
@@ -213,19 +238,16 @@ def main() -> None:
     checkpoint_path = PROJECT_ROOT / experiment["checkpoint"]
     if not checkpoint_path.is_file():
         raise FileNotFoundError(f"Frozen baseline checkpoint not found: {checkpoint_path}")
-    conditions = load_conditions(pilot_config_path)
+    condition_config = PROJECT_ROOT / experiment.get("condition_config", str(pilot_config_path.relative_to(PROJECT_ROOT)))
+    conditions = load_conditions(condition_config)
     set_seed(int(experiment["seed"]))
     device = torch.device("cuda")
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    model = SegformerForSemanticSegmentation.from_pretrained(
-        model_config["pretrained_model"], num_labels=data["num_classes"], id2label=ID2LABEL,
-        label2id=LABEL2ID, ignore_mismatched_sizes=True,
-    ).to(device)
-    model.load_state_dict(checkpoint["model_state_dict"])
+    model = build_frozen_model(model_config, data["num_classes"], checkpoint, device)
 
     output_dir = PROJECT_ROOT / experiment["output_dir"]
     output_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(pilot_config_path, output_dir / "degradation_config.yaml")
+    shutil.copy2(condition_config, output_dir / "degradation_config.yaml")
     split_dir = PROJECT_ROOT / data["split_dir"]
     examples_per_condition = int(args.examples_per_condition if args.examples_per_condition is not None else experiment.get("examples_per_condition", 0))
     raw_rows: list[dict[str, Any]] = []

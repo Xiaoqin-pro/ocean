@@ -200,7 +200,7 @@ def main() -> None:
     table = pd.DataFrame(rows)
     if len(table) != 104 or table.duplicated(["method", "condition", "split"]).any():
         raise AssertionError("Expected exactly 104 uniquely keyed result rows.")
-    pilot_path = ROOT / "experiments" / "degradation_pilot_metrics.csv"
+    pilot_path = ROOT / experiment.get("pilot_metrics", "experiments/degradation_pilot_metrics.csv")
     raw_differences = compare_raw(table, pilot_path)
     table.to_csv(output / "metrics.csv", index=False)
     pd.DataFrame(per_class).to_csv(output / "per_class_metrics.csv", index=False)

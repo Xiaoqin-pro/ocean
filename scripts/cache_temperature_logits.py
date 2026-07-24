@@ -12,6 +12,8 @@ import torch
 import yaml
 from torch.utils.data import DataLoader
 from transformers import SegformerForSemanticSegmentation
+from torchvision.models import MobileNet_V3_Large_Weights
+from torchvision.models.segmentation import deeplabv3_mobilenet_v3_large
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -20,6 +22,25 @@ from datasets.label_mapping import ID2LABEL, LABEL2ID  # noqa: E402
 from datasets.suim_dataset import SUIMDataset, build_eval_transform  # noqa: E402
 from degradations.registry import build_image_degradation, load_conditions  # noqa: E402
 from utils.reproducibility import set_seed  # noqa: E402
+
+
+def build_frozen_model(model_config: dict[str, Any], classes: int, checkpoint: dict[str, Any], device: torch.device) -> torch.nn.Module:
+    architecture = str(model_config.get("architecture", "segformer_b0"))
+    if architecture == "deeplabv3_mobilenet_v3_large":
+        name = model_config.get("backbone_weights")
+        weights = None if name is None else MobileNet_V3_Large_Weights[name]
+        model = deeplabv3_mobilenet_v3_large(weights=None, weights_backbone=weights, num_classes=classes, aux_loss=False)
+    elif architecture == "segformer_b0":
+        model = SegformerForSemanticSegmentation.from_pretrained(model_config["pretrained_model"], num_labels=classes, id2label=ID2LABEL, label2id=LABEL2ID, ignore_mismatched_sizes=True)
+    else:
+        raise ValueError(f"Unsupported frozen architecture: {architecture}")
+    model.load_state_dict(checkpoint["model_state_dict"])
+    return model.to(device).eval()
+
+
+def model_logits(model: torch.nn.Module, pixels: torch.Tensor) -> torch.Tensor:
+    output = model(pixel_values=pixels) if hasattr(model, "config") else model(pixels)
+    return output.logits if hasattr(output, "logits") else output["out"]
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -60,12 +81,7 @@ def main() -> None:
     set_seed(int(experiment["seed"]))
     device = torch.device("cuda")
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    model = SegformerForSemanticSegmentation.from_pretrained(
-        model_config["pretrained_model"], num_labels=data["num_classes"], id2label=ID2LABEL,
-        label2id=LABEL2ID, ignore_mismatched_sizes=True,
-    ).to(device)
-    model.load_state_dict(checkpoint["model_state_dict"])
-    model.eval()
+    model = build_frozen_model(model_config, data["num_classes"], checkpoint, device)
     split_dir = PROJECT_ROOT / data["split_dir"]
     manifest: list[dict[str, Any]] = []
     conditions = load_conditions(degradation_path)
@@ -86,7 +102,7 @@ def main() -> None:
                     # otherwise a seemingly harmless cache can alter boundary
                     # argmax decisions before temperature scaling even starts.
                     with torch.amp.autocast("cuda", enabled=bool(training["amp"])):
-                        output_logits = model(pixel_values=batch["pixel_values"].to(device, non_blocking=True)).logits
+                        output_logits = model_logits(model, batch["pixel_values"].to(device, non_blocking=True))
                     logits.append(output_logits.cpu().to(torch.float16))
                     labels.append(batch["labels"].cpu())
                     sample_ids.extend(str(item) for item in batch["sample_id"])

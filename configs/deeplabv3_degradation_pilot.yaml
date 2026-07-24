@@ -1,0 +1,9 @@
+experiment:
+  name: deeplabv3_degradation_pilot_v1
+  seed: 20260724
+  output_dir: outputs/deeplabv3_degradation_pilot
+  baseline_config: configs/baseline/deeplabv3_mobilenetv3_suim_v2_scene.yaml
+  checkpoint: outputs/deeplabv3_mobilenetv3_suim_v2_scene/checkpoints/best.pt
+  splits: [val, calibration]
+  examples_per_condition: 0
+  condition_config: configs/degradation_pilot.yaml

@@ -120,7 +120,8 @@ def main() -> None:
         for (method, region), accumulator in accumulators.items():
             rows.append({"condition": condition, "method": method, "region": region, "boundary_radius": args.radius, **accumulator.result()})
         print(f"processed {condition}")
-    output = ROOT / "outputs" / "residual_calibration_analysis"
+    output = ROOT / experiment.get("boundary_output_dir", "outputs/residual_calibration_analysis")
+    output.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(rows).to_csv(output / "boundary_interior_metrics.csv", index=False)
 
 
