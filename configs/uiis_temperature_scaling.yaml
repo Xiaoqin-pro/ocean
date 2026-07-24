@@ -2,6 +2,7 @@ experiment:
   output_dir: outputs/uiis_temperature_scaling
   cache_dir: outputs/uiis_alpha010_crc/cache
   checkpoint: outputs/segformer_b0_uiis_alpha010_confirmation/checkpoints/last.pt
+  training_config: configs/uiis/segformer_b0_alpha010_confirmation.yaml
   degradation_config: configs/degradation_pilot.yaml
   splits: [calibration, confirmation]
   evaluation_split: confirmation

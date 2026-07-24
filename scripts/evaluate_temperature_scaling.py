@@ -8,7 +8,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +48,23 @@ def sha256(path: Path) -> str:
 def load_yaml(path: Path) -> dict[str, Any]:
     with path.open(encoding="utf-8") as handle:
         return yaml.safe_load(handle)
+
+
+def atomic_csv(table: pd.DataFrame, path: Path) -> None:
+    """Write a complete CSV before replacing the published result."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", suffix=".csv", dir=path.parent, delete=False, encoding="utf-8", newline="") as handle:
+        temporary = Path(handle.name)
+        table.to_csv(handle, index=False)
+    os.replace(temporary, path)
+
+
+def atomic_json(value: dict[str, Any], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", suffix=".json", dir=path.parent, delete=False, encoding="utf-8") as handle:
+        temporary = Path(handle.name)
+        json.dump(json_safe(value), handle, ensure_ascii=False, indent=2)
+    os.replace(temporary, path)
 
 
 def validate_cache_payload(
@@ -202,17 +221,24 @@ def main() -> None:
         raise AssertionError("Expected exactly 104 uniquely keyed result rows.")
     pilot_value = experiment.get("pilot_metrics")
     raw_differences = compare_raw(table, ROOT / pilot_value) if pilot_value else {}
-    table.to_csv(output / "metrics.csv", index=False)
-    pd.DataFrame(per_class).to_csv(output / "per_class_metrics.csv", index=False)
+    atomic_csv(table, output / "metrics.csv")
+    atomic_csv(pd.DataFrame(per_class), output / "per_class_metrics.csv")
+    training_config_path = ROOT / experiment.get("training_config", "") if experiment.get("training_config") else None
+    split_hashes: dict[str, str] = {}
+    if training_config_path and training_config_path.is_file():
+        training_config = load_yaml(training_config_path)
+        split_dir = ROOT / training_config["data"]["split_dir"]
+        split_hashes = {split: sha256(split_dir / f"{split}.csv") for split in experiment["splits"]}
     metadata = {
         "config": str(config_path.relative_to(ROOT)), "config_sha256": sha256(config_path),
         "checkpoint": experiment["checkpoint"], "checkpoint_sha256": expected_checkpoint_sha256,
         "degradation_config": experiment["degradation_config"], "degradation_config_sha256": expected_degradation_config_sha256,
-        "cache_entries": 26, "result_rows": 104, "methods": list(METHODS), "splits_evaluated": list(SPLITS),
+        "cache_entries": 26, "cache_manifest_sha256": sha256(cache_root / "manifest.json"), "split_csv_sha256": split_hashes,
+        "result_rows": 104, "methods": list(METHODS), "splits_evaluated": list(experiment["splits"]),
         "official_test_evaluated": False, "model_retrained": False, "raw_cache_vs_frozen_pilot_max_abs_difference": raw_differences,
         "cache_logits_dtype": "float16", "cache_integrity_verified": True, "segmentation_invariants_verified": True,
     }
-    (output / "evaluation_metadata.json").write_text(json.dumps(json_safe(metadata), ensure_ascii=False, indent=2), encoding="utf-8")
+    atomic_json(metadata, output / "evaluation_metadata.json")
 
 
 if __name__ == "__main__":
