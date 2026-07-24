@@ -107,7 +107,14 @@ def main() -> None:
 
     output = ROOT / experiment["cache_dir"]
     split_dir = ROOT / data["split_dir"]
-    manifest: list[dict[str, Any]] = []
+    manifest_path = output / "manifest.json"
+    prior_entries: list[dict[str, Any]] = []
+    if manifest_path.is_file():
+        prior_entries = json.loads(manifest_path.read_text(encoding="utf-8")).get("entries", [])
+    replaced_keys = {(split, condition.name) for split in requested_splits for condition in conditions}
+    manifest: list[dict[str, Any]] = [
+        entry for entry in prior_entries if (entry.get("split"), entry.get("condition")) not in replaced_keys
+    ]
     for split in requested_splits:
         for condition in conditions:
             dataset = SUIMDataset(
@@ -164,7 +171,6 @@ def main() -> None:
                 }
             )
             print(f"cached {split}/{condition.name}: {len(sample_ids)} samples")
-    manifest_path = output / "manifest.json"
     temporary = manifest_path.with_suffix(".json.tmp")
     temporary.parent.mkdir(parents=True, exist_ok=True)
     temporary.write_text(
