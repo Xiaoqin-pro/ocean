@@ -1,0 +1,25 @@
+experiment:
+  output_dir: outputs/uiis_deeplab_temperature_scaling
+  cache_dir: outputs/uiis_deeplab_temperature_scaling/cache
+  checkpoint: outputs/deeplabv3_mobilenetv3_uiis_alpha010_confirmation/checkpoints/last.pt
+  training_config: configs/uiis/deeplabv3_mobilenetv3_alpha010_confirmation.yaml
+  degradation_config: configs/degradation_pilot.yaml
+  fit_split: calibration
+  evaluation_split: confirmation
+  splits: [calibration, confirmation]
+  official_suim_test_locked: true
+  conditions: [clean, color_s1, color_s2, color_s3, turbidity_s1, turbidity_s2, turbidity_s3, lowlight_s1, lowlight_s2, lowlight_s3, blur_s1, blur_s2, blur_s3]
+  external_benchmark_extension: true
+fitting:
+  method: lbfgs
+  min_temperature: 0.05
+  max_temperature: 20.0
+  max_iter: 100
+  objective_weighting: pixel_weighted
+metrics:
+  ece_bins: 15
+protocol:
+  confirmation_opened: true
+  confirmation_used_for_fitting: false
+  official_suim_test_evaluated: false
+  model_retrained_after_protocol_freeze: false
