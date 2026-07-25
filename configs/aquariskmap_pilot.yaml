@@ -10,9 +10,11 @@ protocol:
   validation_split: data/suim_processed/splits/v2_scene_grouped_deduplicated/val.csv
   calibration_split: data/suim_processed/splits/v2_scene_grouped_deduplicated/calibration.csv
 features:
+  schema_version: aquariskmap_features_v1
   grid_size: 96
   input_channels: 14
   class_indexed_logits_allowed: false
+  logits_processing: bilinear_upsample_to_96_then_softmax
   blocks:
     - normalized_rgb
     - top4_sorted_probabilities
@@ -47,3 +49,7 @@ certification:
   alpha: 0.10
   coverage_grid: [0.01, 1.0, 0.01]
   monotone_envelope: true
+cache:
+  split_allowlist: [risk_head_train, risk_head_development]
+  dtype: float16
+  required_provenance: [checkpoint_sha256, degradation_config_sha256, source_image_sha256]
