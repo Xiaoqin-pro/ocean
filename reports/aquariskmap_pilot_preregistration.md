@@ -5,6 +5,15 @@
 **Parent benchmark freeze:** `8d24fdf` (`experiment/uwr-benchmark-cnn-replication`)  
 **Date:** 2026-07-25  
 
+## Revision record
+
+* **v1 / `0dd07c1`:** initial preregistration, committed before implementation.
+* **v1.1:** resolves five protocol ambiguities
+  identified in an independent review before the first AquaRiskMap code: Stage-B
+  retraining versus zero-shot transfer, class-space-dependent logits, paired
+  trajectory batches, supervision resolution, and the CRC monotone envelope.
+  No pilot result was inspected to make these changes.
+
 ## 1. Purpose and falsifiable hypothesis
 
 UWR-Bench is frozen before this protocol.  Its four completed dataset--model
@@ -93,17 +102,21 @@ label resolution for evaluation.
 | feature block | channels | definition |
 | --- | ---: | --- |
 | normalized RGB | 3 | the model input image after the existing deterministic normalization |
-| frozen logits | 8 | raw class logits, bilinearly resized from the base output |
-| confidence features | 4 | MSP, probability margin, normalized entropy, logit margin |
+| ranked probability profile | 4 | class-agnostic top-1 through top-4 sorted softmax probabilities |
+| ranked probability gaps | 3 | top-1/top-2, top-2/top-3, and top-3/top-4 gaps |
+| confidence statistics | 2 | normalized entropy and class-count-normalized log-sum-exp energy |
 | local prediction features | 2 | fixed 3x3 label-disagreement fraction and predicted-label boundary indicator |
 
-The total input dimensionality is **17 channels**.  No ground-truth boundary,
-true degradation label, quality-cluster identifier, or test-time image pair is
-an inference input.
+The total input dimensionality is **14 channels**.  In particular, raw
+class-indexed logits are deliberately excluded: the input has no dependence on
+the number or semantic identity of classes.  This permits a future zero-shot
+cross-class-space diagnostic without redefining the network input.  No
+ground-truth boundary, true degradation label, quality-cluster identifier, or
+test-time image pair is an inference input.
 
 The architecture is fixed as follows:
 
-1. depthwise-separable `3x3` stem, `17 -> 64`, GroupNorm(8), GELU;
+1. depthwise-separable `3x3` stem, `14 -> 64`, GroupNorm(8), GELU;
 2. three residual depthwise-separable `3x3` blocks at 64 channels, with
    dilations 1, 2, and 3 respectively, each followed by GroupNorm(8) and GELU;
 3. `1x1` projection `64 -> 1` producing an error-risk logit.
@@ -125,6 +138,15 @@ For each condition, derive the binary pixel target
 same-scene clean/degraded outputs are paired only during training.  At
 inference, AquaRiskMap consumes one image and one frozen-model prediction.
 
+Each training batch is exactly four base scenes, each represented by its clean
+view and one degraded view (eight image-condition pairs).  The degraded view
+for scene `s` in epoch `e` is selected without replacement by
+`degradation_index = (stable_hash(s) + e) mod 12`, with the 12 non-clean
+conditions in the fixed registry order above.  Thus every batch contains four
+valid clean-to-degraded trajectories.  Batch ordering is a deterministic
+shuffle with seed `20260725 + epoch`; a batch index is included in all
+pair-sampling random states.
+
 The loss is fixed before implementation:
 
 ```
@@ -135,7 +157,9 @@ L = L_error + 0.25 L_rank + 0.25 L_trajectory
   inverse class-frequency weight measured once on `risk_head_train`, clipped
   to `[1, 10]`; it is saved in the training metadata.
 * `L_rank`: mean `softplus(r_correct - r_error)` over 2,048 deterministic
-  error/correct pairs per batch.  Pairs are generated with seed `20260725`.
+  error/correct pairs per batch.  Correct and error pixels are sampled with
+  replacement only when their eligible pool is smaller than 2,048; the random
+  state is `20260725 + 100003 * epoch + batch_index`.
 * `L_trajectory`: for pixels correct on clean but wrong under a paired
   degradation, mean `relu(0.10 - (sigmoid(r_degraded) - sigmoid(r_clean)))`.
   It is zero for a batch without newly erroneous pixels.
@@ -143,6 +167,13 @@ L = L_error + 0.25 L_rank + 0.25 L_trajectory
 For `L_error` only, pixels inside a ground-truth radius-3 boundary band receive
 weight 2 and other valid pixels weight 1.  Ground-truth boundaries are never
 an inference feature, a selector input, or a calibration input.
+
+The head always produces a `96 x 96` risk-logit map, which is bilinearly
+upsampled to the original `384 x 384` label grid *before* `L_error`, `L_rank`,
+and `L_trajectory` are calculated.  Error labels and boundary labels are never
+downsampled for supervision.  If this causes an OOM, only the number of base
+scenes per batch may be reduced; the training-loss resolution remains fixed and
+the reduction is recorded.
 
 ## 5. Fixed optimization
 
@@ -155,7 +186,7 @@ Each base model receives one independently initialized risk head.
 | learning rate | 1e-3 |
 | weight decay | 1e-4 |
 | epochs | 20 |
-| batch size | 8 cached image-condition pairs, reduced only for OOM and recorded |
+| batch size | 4 base scenes × (clean + one paired degradation) = 8 image-condition pairs; base-scene count may be reduced only for OOM and recorded |
 | AMP | enabled |
 | checkpoint selection | final epoch only; no early stopping |
 | cache precision | frozen base logits may be `float16`; all head losses use `float32` |
@@ -189,11 +220,22 @@ by condition, severity, class, or random seed.
 After the architecture and score are frozen, a **Global CRC** is fit on all 13
 conditions of the frozen SUIM calibration partition at `alpha = 0.10`.  It
 uses the AquaRiskMap score only as a global pixel ranking score.  The same
-global procedure is fit for raw MSP and all fixed secondary baselines.  The
-validation set is then evaluated once for coverage, selective risk, risk
-excess, foreground/background coverage, boundary coverage, and macro-class
-coverage.  No per-image threshold, quality group, KMeans model, condition
-identifier, or adaptive alpha is permitted.
+global procedure is fit for raw MSP and all fixed secondary baselines.
+
+The certification implementation is fixed to the existing UWR-Bench rule.  For
+each original image and condition, it evaluates tie-aware selective risk on the
+coverage grid `c ∈ {0.01, 0.02, ..., 1.00}` and replaces the raw curve `R(c)` by
+the conservative monotone envelope
+
+```
+R_tilde(c) = max_{c' <= c} R(c').
+```
+
+Calibration chooses coverage only from this envelope; it never exploits a
+non-monotone dip in raw empirical risk.  The validation set is then evaluated
+once for coverage, selective risk, risk excess, foreground/background coverage,
+boundary coverage, and macro-class coverage.  No per-image threshold, quality
+group, KMeans model, condition identifier, or adaptive alpha is permitted.
 
 ## 7. Predefined progression gates
 
@@ -218,14 +260,28 @@ eAURC comparisons; at least one must satisfy the complete-pass gate.  If this
 does not occur, AquaRiskMap stops permanently after Stage A.  UIIS and DUT-USEG
 may not be used to modify, rescue, or retune it.
 
+A Stage-A pass authorizes only the fixed follow-on evaluations.  It is not
+final method evidence because the base segmenters saw the original formal-train
+images used to fit the risk head; final method claims require the pre-registered
+external confirmation in Stage C.
+
 ### Stage B -- fixed 2x2 extension
 
-Only after a Stage-A pass, run the unchanged method once in the four frozen
-UWR-Bench units.  It must show positive error-AUPRC direction in all four,
-non-worse boundary ranking in all four, and a statistically supported eAURC
-gain in at least three of four.  UIIS is explicitly a fixed external benchmark
-extension, not a fresh blind confirmation, because its confirmation partition
-was previously used by UWR-Bench.
+Only after a Stage-A pass, run the **same architecture, class-agnostic inputs,
+losses, schedule, score definition, and evaluation protocol**, but train a
+separate risk head on each dataset's own formal train partition.  Thus the
+primary Stage-B experiment tests method reproducibility, not zero-shot weight
+transfer.  On UIIS, use only UIIS train to fit the head, UIIS calibration for
+Global CRC, and UIIS confirmation for evaluation.
+
+The SUIM-trained head applied to UIIS without retraining is a frozen secondary
+zero-shot diagnostic.  It is reported regardless of direction but is neither a
+success gate nor a hyperparameter-selection source.  The four-unit primary
+extension must show positive error-AUPRC direction in all four, non-worse
+boundary ranking in all four, and a statistically supported eAURC gain in at
+least three of four.  UIIS remains a fixed external benchmark extension, not a
+fresh blind confirmation, because its confirmation partition was previously
+used by UWR-Bench.
 
 ### Stage C -- fresh external confirmation
 
@@ -233,8 +289,9 @@ Only after Stage B is frozen, acquire and pre-register a new external dataset
 before evaluating it.  DUT-USEG is a candidate because it offers real underwater
 semantic/instance annotations, but its class space differs from SUIM/UIIS
 ([Li et al., 2021](https://arxiv.org/abs/2108.11727)).  It can therefore confirm
-error-localization and ranking transfer, not direct cross-dataset mIoU
-equivalence.  No DUT-USEG result may alter this method.
+error-localization and ranking transfer, including the fixed zero-shot
+class-agnostic risk-head diagnostic, not direct cross-dataset mIoU equivalence.
+No DUT-USEG result may alter this method.
 
 ## 8. Non-negotiable prohibitions
 
@@ -258,6 +315,15 @@ This branch may not:
 5. loss/trajectory unit tests, including no-new-error batches;
 6. ranking/CRC invariant tests and atomic result-write test;
 7. one immutable pilot report documenting all gates, including failure.
+
+## 10. Related-work boundary to retain in the final manuscript
+
+| work | overlap | fixed AquaRiskMap distinction |
+| --- | --- | --- |
+| Error Localization Network (CVPR 2022) | pixel error localization from image and segmentation prediction | same-scene underwater degradation-response supervision, leakage-audited reliability evaluation, and no claim of first error localization |
+| Automatically Adaptive CRC (2025) | conditional/adaptive risk control | only one global CRC threshold; no input-adaptive risk budget or condition-specific threshold |
+| Soft Dice Confidence (2026) | selective semantic-segmentation confidence | multi-class pixel risk ranking and local accepted regions, not binary image-level Dice confidence ([link](https://link.springer.com/article/10.1007/s10994-026-07096-w)) |
+| model-agnostic conformal semantic-segmentation work (2026) | uncertainty and conformal guarantees for segmentation | Global CRC is an evaluation/certification layer, not claimed as the new method ([link](https://drops.dagstuhl.de/entities/document/10.4230/OASIcs.AEiC.2026.1)) |
 
 Until these artifacts are committed, this document authorizes **protocol
 implementation only**, not a pilot training run.
