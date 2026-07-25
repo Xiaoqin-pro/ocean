@@ -93,6 +93,10 @@ def test_clean_retention_masks_ignore_and_keeps_teacher_gradient_free():
     assert value > 0
     value.backward()
     assert teacher.grad is None
+    # Teacher-wrong pixels are intentionally not distilled.
+    wrong_teacher = torch.tensor([[[[0.0]], [[3.0]]]], requires_grad=True)
+    zero = clean_retention_kl(wrong_teacher, torch.tensor([[[[3.0]], [[0.0]]]], requires_grad=True), torch.tensor([[[0]]]))
+    assert zero.item() == 0.0
 
 
 def test_trajectory_cycles_four_families_without_s2_or_cross_family():
@@ -127,6 +131,8 @@ def test_access_guard_and_metadata_only_split_audit():
     validate_method_train_membership(["a", "b"], ["a", "b"])
     with pytest.raises(PermissionError):
         validate_method_train_membership(["a", "forbidden_test_id"], ["a", "b"])
-    validate_split_manifest({"method_train_count": 936, "method_development_count": 231, "sample_id_overlap": 0, "scene_group_overlap": 0, "exact_duplicate_overlap": 0})
+    audit = {"split_version": "aquariskmap_risk_head_v1", "counts": {"risk_head_train": 936, "risk_head_development": 231}, "csv_sha256": {"risk_head_train": "train", "risk_head_development": "development"}, "sample_leakage": False, "scene_group_leakage": False, "formal_validation_read": False, "formal_calibration_read": False, "official_suim_test_evaluated": False}
+    validate_split_manifest(audit, method_train_sha256="train", method_development_sha256="development")
     with pytest.raises(ValueError):
-        validate_split_manifest({"method_train_count": 936, "method_development_count": 231, "sample_id_overlap": 1, "scene_group_overlap": 0, "exact_duplicate_overlap": 0})
+        bad_audit = {**audit, "sample_leakage": True}
+        validate_split_manifest(bad_audit, method_train_sha256="train", method_development_sha256="development")

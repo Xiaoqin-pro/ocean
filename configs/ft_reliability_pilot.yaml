@@ -1,5 +1,5 @@
 experiment:
-  name: ft_reliability_suim_pilot_v1
+  name: ft_reliability_suim_pilot_v1_2
   branch: experiment/ft-reliability-pilot
   output_dir: outputs/ft_reliability_suim_pilot_v1
   seed: 20260725
@@ -15,10 +15,10 @@ access_control:
   method_development_csv: data/suim_processed/splits/aquariskmap_risk_head_v1/risk_head_development.csv
   method_train_count: 936
   method_development_count: 231
-  frozen_split_audit:
-    sample_id_overlap: 0
-    scene_group_overlap: 0
-    exact_duplicate_overlap: 0
+  frozen_split_audit_path: data/suim_processed/splits/aquariskmap_risk_head_v1/summary.json
+  method_train_csv_sha256: 7CF81D0B822A70414764E71BD596DBF8500B19D3D9667A5F9F066C7AF7656D07
+  method_development_csv_sha256: FF27E7E33B3BE077D44DBE1B2B7F4649ED691CBC8D8C3F0DFD06DC64D35335E6
+  frozen_split_audit_sha256: 89F9114990C6F11B9EB0AB7D676B67E62048B826CF03A6DD0FC19E5A4842023B
   prohibited_suim_splits:
     - data/suim_processed/splits/v2_scene_grouped_deduplicated/val.csv
     - data/suim_processed/splits/v2_scene_grouped_deduplicated/calibration.csv
@@ -54,6 +54,8 @@ models:
     weight_decay: 0.01
     epochs: 100
     base_scene_batch_size: 4
+    effective_base_scene_batch_size: 4
+    gradient_accumulation_steps: 1
   deeplabv3_mobilenetv3_large:
     source_baseline_config: configs/baseline/deeplabv3_mobilenetv3_suim_v2_scene.yaml
     backbone_weights: IMAGENET1K_V2
@@ -62,6 +64,7 @@ models:
     weight_decay: 0.0001
     epochs: 100
     base_scene_batch_size: 4
+    gradient_accumulation_steps: 1
   oom_policy:
     gradient_accumulation_only: true
     preserve_effective_batch_size: true
@@ -93,6 +96,8 @@ clean_retention:
   resolution: 384
   teacher_eval_mode: true
   teacher_no_grad: true
+  teacher_correct_only: true
+  teacher_checkpoint: outputs/ft_reliability_suim_pilot_v1_2/segformer/formal/A/checkpoints/final.pt
 
 generic_correctness_ranking:
   score: top1_minus_top2_logit_gap
@@ -113,15 +118,16 @@ loss_schedule:
   A:
     epochs_1_to_final: clean_ce
   B:
-    epochs_1_to_final: mean_three_view_ce
+    epochs_1_to_5: shared_degradation_ce_warmup
+    epochs_6_to_final: mean_three_view_ce
   C:
-    epochs_1_to_5: mean_three_view_ce
+    epochs_1_to_5: shared_degradation_ce_warmup
     epochs_6_to_final: mean_three_view_ce_plus_0.10_L_CR
   D:
-    epochs_1_to_5: mean_three_view_ce
+    epochs_1_to_5: shared_degradation_ce_warmup
     epochs_6_to_final: mean_three_view_ce_plus_0.10_L_FT
   E:
-    epochs_1_to_5: mean_three_view_ce_plus_0.10_L_retain
+    epochs_1_to_5: shared_degradation_ce_warmup
     epochs_6_to_final: mean_three_view_ce_plus_0.10_L_FT_plus_0.10_L_retain
 
 memory_safe_optimization:
@@ -153,7 +159,7 @@ evaluation_after_freeze_only:
 
 progression_gate:
   e_vs_b:
-    macro_miou_improvement_pp_min: 1.0
+    macro_miou_decrease_pp_max: 0.3
     clean_miou_decrease_pp_max: 0.5
     full_eaurc_relative_decrease_min: 0.08
     boundary_eaurc_relative_decrease_min: 0.05
@@ -164,4 +170,8 @@ progression_gate:
     error_auprc_direction: better
     at_least_one_paired_bootstrap_95ci_excludes_zero: true
   pass_rule: all_conditions_required_before_deeplab_replication
+  strong_result:
+    macro_miou_improvement_pp_min: 0.5
+    or_severe_degradation_mean_miou_improvement_pp_min: 1.0
+    or_significant_foreground_or_boundary_improvement: true
   failure_rule: permanently_stop_ft_reliability_without_retuning_or_formal_split_access

@@ -14,6 +14,12 @@
   defines clean retention precisely, fixes memory-safe backward order, and
   resolves the full-eAURC gate to 8%. This amendment is made before any method
   code, training, or `method_development` access; no result was inspected.
+* **v1.2:** before any real smoke or pilot training, uses a common five-epoch
+  Degradation-CE warm-up for B/C/D/E, retains only clean pixels that the frozen
+  Baseline-936 teacher predicts correctly, and separates a non-inferiority
+  reliability pass from a stronger robustness result. It also names the
+  supervision an *ordered failure transition*, not a first-failure point.
+  No method result or `method_development` content was inspected.
 
 ## 1. Aim and falsifiable hypothesis
 
@@ -72,7 +78,7 @@ L_{FT}=\frac{1}{|T|}\sum_{i\in T}\operatorname{softplus}(\delta-\operatorname{sg
 
 The `s1` gap and predictions used to construct the transition mask are detached. Minimization imposes \(q_i^{s3}\le q_i^{s1}-\delta\): an incorrect severe-degradation prediction becomes less overconfident without pushing the true-class logit further down or opposing severe-view cross entropy. A batch with no transition pixels has \(L_{FT}=0\). No constraint is imposed on other pixels or on a full severity sequence.
 
-The three-view segmentation component is \(L_{seg}=[CE(clean,y)+CE(s1,y)+CE(s3,y)]/3\). This avoids a three-fold loss-scale change relative to clean-only training. Clean retention is defined on valid 384-by-384 pixels as \(L_{retain}=\frac{1}{|\Omega|}\sum_{i\in\Omega}KL(p_{teacher,i}^{clean}\Vert p_{student,i}^{clean})\), at temperature 1.0. The teacher is a same-architecture `Baseline-936`, trained only on `method_train`, frozen, in evaluation mode, and evaluated under `no_grad`; its checkpoint is never used to initialize an FT student. Every student starts from the same ImageNet-pretrained initialization and seed as its same-architecture comparators.
+The three-view segmentation component is \(L_{seg}=[CE(clean,y)+CE(s1,y)+CE(s3,y)]/3\). This avoids a three-fold loss-scale change relative to clean-only training. Clean retention is defined only on the valid 384-by-384 clean pixels that the frozen teacher predicts correctly: \(R_i=\mathbf{1}[\hat y_{teacher,i}^{clean}=y_i\land y_i\ne255]\), \(L_{retain}=\sum_iR_iKL(p_{teacher,i}^{clean}\Vert p_{student,i}^{clean})/\sum_iR_i\). The temperature is 1.0. The teacher is a same-architecture `Baseline-936`, trained only on `method_train`, frozen, in evaluation mode, and evaluated under `no_grad`; its checkpoint is never used to initialize an FT student. Every student starts from the same ImageNet-pretrained initialization and seed as its same-architecture comparators.
 
 The fixed values are: margin 0.20, FT weight 0.10, clean-retention weight 0.10, warm-up 5 epochs, at most 4,096 transition pixels per batch, GT boundary radius 3, and 50%/50% boundary/interior transition sampling. If one region is short, all of it is used and the other region fills the remainder; replacement is allowed when fewer than 4,096 total transitions exist. Boundary data are used only for this training-time sampler and never at inference. Boundary/interior transition counts are logged every epoch.
 
@@ -81,6 +87,8 @@ Variant C is an explicitly fixed generic comparator rather than an underspecifie
 ## 5. Fixed training and comparison plan
 
 SegFormer-B0 and DeepLabV3-MobileNetV3-Large retain their existing baseline optimizer, learning rate, weight decay, 100-epoch schedule, 384-pixel input, and AMP setting. Their only data change is replacement of the formal train partition with the 936-image `method_train`. If memory requires it, only the base-scene batch size may be reduced and gradient accumulation restores the same effective batch; image resolution may not change. All variants select the final epoch, never `method_development`.
+
+For B/C/D/E, one Degradation-CE run supplies a common, atomic epoch-5 warm-up checkpoint containing model, optimizer, scaler, RNG, deterministic data-order state, and initialization hash. B continues from it with CE; C/D/E each clone it and branch at epoch 6. E begins clean retention only after the branch. This creates an identical first-five-epoch optimization history without initializing any student from the teacher.
 
 For memory safety on 8GB VRAM, D and E use three sequential forwards with gradient accumulation: (1) clean forward, clean CE and retention, backward, release the clean graph; (2) `s1` forward, `s1` CE plus detached `q_s1` and correctness, backward, release the `s1` graph; (3) `s3` forward, `s3` CE, detached transition mask, and FT loss, backward; then perform one optimizer step. This is objective-equivalent because FT explicitly detaches the `s1` branch. C calculates its generic ranking loss from `s3` only.
 
@@ -99,10 +107,10 @@ The fixed schedules are:
 | variant | epochs 1--5 | epochs 6--100 |
 | --- | --- | --- |
 | A | clean CE | clean CE |
-| B | mean three-view CE | mean three-view CE |
-| C | mean three-view CE | mean three-view CE + 0.10 \(L_{CR}\) |
-| D | mean three-view CE | mean three-view CE + 0.10 \(L_{FT}\) |
-| E | mean three-view CE + 0.10 \(L_{retain}\) | mean three-view CE + 0.10 \(L_{FT}\) + 0.10 \(L_{retain}\) |
+| B | shared Degradation-CE warm-up | mean three-view CE |
+| C | shared Degradation-CE warm-up | mean three-view CE + 0.10 \(L_{CR}\) |
+| D | shared Degradation-CE warm-up | mean three-view CE + 0.10 \(L_{FT}\) |
+| E | shared Degradation-CE warm-up | mean three-view CE + 0.10 \(L_{FT}\) + 0.10 \(L_{retain}\) |
 
 The principal comparisons are **E vs B** and **E vs C**. No loss weight, margin, warm-up, sampler, condition, seed, or training length may be changed after the first `method_development` result.
 
@@ -114,7 +122,7 @@ SegFormer may proceed to an identical DeepLab replication only if **all** criter
 
 | comparison | required criterion |
 | --- | --- |
-| E vs B | 13-condition macro mIoU improvement at least +1.0 pp |
+| E vs B | 13-condition macro mIoU decrease no greater than 0.3 pp |
 | E vs B | clean mIoU decrease no greater than 0.5 pp |
 | E vs B | full eAURC relative decrease at least 8% |
 | E vs B | boundary eAURC relative decrease at least 5% |
@@ -124,6 +132,8 @@ SegFormer may proceed to an identical DeepLab replication only if **all** criter
 | E vs C | at least one corresponding paired-bootstrap 95% CI excludes zero |
 
 Failure of any gate permanently stops FT-Reliability: it may not be retuned, retrained to rescue a result, or advanced to formal `val`, `calibration`, official TEST, UIIS, or another external dataset.
+
+A result is classified as **strong**, rather than merely a core reliability pass, only if all core gates pass and at least one additional criterion holds: 13-condition macro mIoU improves by at least +0.5 pp; mean severe-degradation mIoU improves by at least +1.0 pp; or a predeclared key foreground/boundary result is statistically significant. CRC is deliberately excluded from this 231-image development gate because it requires separately held calibration and evaluation roles.
 
 ## 7. Initial implementation boundary
 

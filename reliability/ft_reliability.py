@@ -142,9 +142,25 @@ def failure_transition_loss(
     """FT v1.1 loss: lower severe wrong-prediction top-gap confidence only."""
     if margin != 0.20:
         raise ValueError("FT-Reliability v1.1 freezes the margin at 0.20.")
-    transition = failure_transition_mask(logits_s1, logits_s3, labels, ignore_index=ignore_index)
+    return failure_transition_loss_from_s1(
+        top1_top2_logit_gap(logits_s1).detach(), logits_s1.detach().argmax(dim=1), logits_s3, labels, boundary,
+        epoch=epoch, batch_index=batch_index, margin=margin, max_pixels=max_pixels,
+        boundary_fraction=boundary_fraction, ignore_index=ignore_index,
+    )
+
+
+def failure_transition_loss_from_s1(
+    q_s1: torch.Tensor, prediction_s1: torch.Tensor, logits_s3: torch.Tensor, labels: torch.Tensor, boundary: torch.Tensor, *,
+    epoch: int, batch_index: int, margin: float = 0.20, max_pixels: int = 4096,
+    boundary_fraction: float = 0.50, ignore_index: int = IGNORE_INDEX,
+) -> tuple[torch.Tensor, dict[str, int]]:
+    """FT loss using saved detached s1 gap/prediction after the s1 graph is freed."""
+    if q_s1.shape != labels.shape or prediction_s1.shape != labels.shape:
+        raise ValueError("Saved s1 prediction/gap must match labels.")
+    prediction_s3 = logits_s3.detach().argmax(dim=1)
+    transition = prediction_s1.detach().eq(labels) & prediction_s3.ne(labels) & labels.ne(ignore_index)
     indices, counts = deterministic_transition_sampler(transition, boundary, labels, epoch=epoch, batch_index=batch_index, max_pixels=max_pixels, boundary_fraction=boundary_fraction, ignore_index=ignore_index)
-    q_s1, q_s3 = top1_top2_logit_gap(logits_s1).detach().reshape(-1), top1_top2_logit_gap(logits_s3).reshape(-1)
+    q_s1, q_s3 = q_s1.detach().reshape(-1), top1_top2_logit_gap(logits_s3).reshape(-1)
     if len(indices) == 0:
         return q_s3.sum() * 0.0, counts
     chosen = indices.to(q_s3.device)
@@ -204,16 +220,16 @@ def generic_correctness_ranking_loss(
 def clean_retention_kl(
     teacher_logits: torch.Tensor, student_logits: torch.Tensor, labels: torch.Tensor, *, ignore_index: int = IGNORE_INDEX
 ) -> torch.Tensor:
-    """Teacher-to-student KL averaged only over valid full-resolution pixels."""
+    """Teacher-to-student KL on valid clean pixels the teacher predicts correctly."""
     if teacher_logits.shape != student_logits.shape or teacher_logits.ndim != 4 or labels.shape != teacher_logits.shape[:1] + teacher_logits.shape[-2:]:
         raise ValueError("Teacher/student logits and labels have incompatible shapes.")
     teacher_probability = teacher_logits.detach().float().softmax(dim=1)
     student_log_probability = student_logits.float().log_softmax(dim=1)
     per_pixel = (teacher_probability * (teacher_probability.clamp_min(torch.finfo(torch.float32).eps).log() - student_log_probability)).sum(dim=1)
-    valid = labels.ne(ignore_index)
-    if not valid.any():
+    retained = labels.ne(ignore_index) & teacher_logits.detach().argmax(dim=1).eq(labels)
+    if not retained.any():
         return student_logits.float().sum() * 0.0
-    return per_pixel[valid].mean()
+    return per_pixel[retained].mean()
 
 
 def assert_method_train_access(
@@ -236,12 +252,24 @@ def validate_method_train_membership(sample_ids: Iterable[str], allowed_sample_i
         raise PermissionError("method_train sample IDs do not exactly match the frozen allowlist.")
 
 
-def validate_split_manifest(manifest: Mapping[str, object]) -> None:
-    """Validate a frozen metadata-only split audit without reading development data."""
-    required = {"method_train_count": 936, "method_development_count": 231, "sample_id_overlap": 0, "scene_group_overlap": 0, "exact_duplicate_overlap": 0}
-    for key, expected in required.items():
-        if manifest.get(key) != expected:
-            raise ValueError(f"Frozen method split manifest has invalid {key!r}.")
+def validate_split_manifest(
+    manifest: Mapping[str, object], *, method_train_sha256: str, method_development_sha256: str,
+) -> None:
+    """Validate the committed metadata audit without reading development rows."""
+    if manifest.get("split_version") != "aquariskmap_risk_head_v1":
+        raise ValueError("Unexpected frozen split version.")
+    counts = manifest.get("counts", {})
+    hashes = manifest.get("csv_sha256", {})
+    if not isinstance(counts, Mapping) or not isinstance(hashes, Mapping):
+        raise ValueError("Frozen split audit lacks counts or CSV hashes.")
+    if counts.get("risk_head_train") != 936 or counts.get("risk_head_development") != 231:
+        raise ValueError("Frozen split audit has incorrect sample counts.")
+    if str(hashes.get("risk_head_train", "")).upper() != method_train_sha256.upper() or str(hashes.get("risk_head_development", "")).upper() != method_development_sha256.upper():
+        raise ValueError("Frozen split audit CSV hashes differ from the protocol.")
+    if bool(manifest.get("sample_leakage", True)) or bool(manifest.get("scene_group_leakage", True)):
+        raise ValueError("Frozen split audit reports cross-role leakage.")
+    if any(bool(manifest.get(key, True)) for key in ("formal_validation_read", "formal_calibration_read", "official_suim_test_evaluated")):
+        raise ValueError("Frozen split audit records impermissible formal-split access.")
 
 
 def atomic_torch_save(payload: Mapping[str, object], path: Path) -> None:

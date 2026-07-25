@@ -34,8 +34,8 @@ from datasets.suim_dataset import IMAGENET_MEAN, IMAGENET_STD  # noqa: E402
 from degradations.registry import build_image_degradation, load_conditions  # noqa: E402
 from reliability.ft_reliability import (  # noqa: E402
     IGNORE_INDEX, assert_method_train_access, atomic_torch_save, clean_retention_kl,
-    failure_transition_loss, generic_correctness_ranking_loss, trajectory_family,
-    validate_split_manifest,
+    failure_transition_loss_from_s1, generic_correctness_ranking_loss, top1_top2_logit_gap, trajectory_family,
+    stable_hash, validate_split_manifest,
 )
 
 
@@ -52,6 +52,16 @@ def sha256(path: Path) -> str:
     with path.open("rb") as handle:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(block)
+    return digest.hexdigest()
+
+
+def state_dict_sha256(state_dict: Mapping[str, torch.Tensor]) -> str:
+    """Hash tensor names, dtypes, shapes, and CPU bytes deterministically."""
+    digest = hashlib.sha256()
+    for name in sorted(state_dict):
+        value = state_dict[name].detach().cpu().contiguous()
+        digest.update(name.encode("utf-8")); digest.update(str(value.dtype).encode("ascii"))
+        digest.update(json.dumps(list(value.shape)).encode("ascii")); digest.update(value.numpy().tobytes())
     return digest.hexdigest()
 
 
@@ -90,15 +100,22 @@ def restore_rng_state(state: Mapping[str, object]) -> None:
 def checkpoint_payload(
     epoch: int, global_step: int, model: torch.nn.Module, optimizer: torch.optim.Optimizer,
     scaler: torch.amp.GradScaler, *, variant: str, initialization_sha256: str,
-    method_train_csv_sha256: str, degradation_config_sha256: str, teacher_checkpoint_sha256: str | None = None,
+    method_train_csv_sha256: str, method_development_csv_sha256: str, split_audit_sha256: str,
+    degradation_config_sha256: str, ft_config_sha256: str, teacher_checkpoint_sha256: str | None = None,
+    run_kind: str, epoch_completed: bool, batch_index: int | None, smoke_target: int | None,
 ) -> dict[str, object]:
+    if run_kind not in {"smoke", "formal"}:
+        raise ValueError("run_kind must be smoke or formal.")
     return {
         "checkpoint_format": "ft_reliability_pilot_v1_1", "protocol_commit": PROTOCOL_COMMIT,
         "variant": variant, "model_name": "segformer", "epoch": epoch, "global_step": global_step,
         "model_state_dict": model.state_dict(), "optimizer_state_dict": optimizer.state_dict(),
         "scaler_state_dict": scaler.state_dict(), "rng_state": capture_rng_state(),
         "initialization_sha256": initialization_sha256, "method_train_csv_sha256": method_train_csv_sha256,
-        "degradation_config_sha256": degradation_config_sha256, "teacher_checkpoint_sha256": teacher_checkpoint_sha256,
+        "method_development_csv_sha256": method_development_csv_sha256, "split_audit_sha256": split_audit_sha256,
+        "degradation_config_sha256": degradation_config_sha256, "ft_config_sha256": ft_config_sha256,
+        "teacher_checkpoint_sha256": teacher_checkpoint_sha256, "run_kind": run_kind,
+        "epoch_completed": epoch_completed, "batch_index": batch_index, "smoke_target": smoke_target,
         "checkpoint_selection": "final_epoch",
         "method_development_evaluated": False, "validation_evaluated": False,
         "calibration_evaluated": False, "official_suim_test_evaluated": False,
@@ -107,18 +124,30 @@ def checkpoint_payload(
 
 def load_completed_epoch_checkpoint(
     path: Path, model: torch.nn.Module, optimizer: torch.optim.Optimizer, scaler: torch.amp.GradScaler,
-    device: torch.device, *, variant: str,
-) -> tuple[int, int]:
+    device: torch.device, *, variant: str, expected_provenance: Mapping[str, str | None],
+    requested_run_kind: str, smoke_target: int | None = None,
+) -> tuple[int, int, int]:
     checkpoint = torch.load(path, map_location=device, weights_only=False)
     if checkpoint.get("checkpoint_format") != "ft_reliability_pilot_v1_1" or checkpoint.get("protocol_commit") != PROTOCOL_COMMIT:
         raise ValueError("Unsupported FT-Reliability checkpoint.")
     if checkpoint.get("variant") != variant or any(bool(checkpoint.get(key, True)) for key in ("method_development_evaluated", "validation_evaluated", "calibration_evaluated", "official_suim_test_evaluated")):
         raise ValueError("Checkpoint violates the frozen FT-Reliability access protocol.")
+    if requested_run_kind not in {"smoke", "formal"} or checkpoint.get("run_kind") != requested_run_kind:
+        raise ValueError("Smoke and formal checkpoints are not interchangeable.")
+    if requested_run_kind == "formal" and not bool(checkpoint.get("epoch_completed")):
+        raise ValueError("Formal training may resume only a completed epoch checkpoint.")
+    if requested_run_kind == "smoke" and checkpoint.get("smoke_target") != smoke_target:
+        raise ValueError("Smoke checkpoint target differs from the requested bounded run.")
+    for key, expected in expected_provenance.items():
+        if checkpoint.get(key) != expected:
+            raise ValueError(f"Checkpoint provenance mismatch for {key}.")
     model.load_state_dict(checkpoint["model_state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
     scaler.load_state_dict(checkpoint["scaler_state_dict"])
     restore_rng_state(checkpoint["rng_state"])
-    return int(checkpoint["epoch"]) + 1, int(checkpoint["global_step"])
+    next_epoch = int(checkpoint["epoch"]) + 1 if bool(checkpoint["epoch_completed"]) else int(checkpoint["epoch"])
+    next_batch = 0 if bool(checkpoint["epoch_completed"]) else int(checkpoint["batch_index"]) + 1
+    return next_epoch, next_batch, int(checkpoint["global_step"])
 
 
 class TrajectoryDataset(Dataset[dict[str, Any]]):
@@ -154,6 +183,8 @@ class TrajectoryDataset(Dataset[dict[str, Any]]):
         with Image.open(self.root / str(row.mask_path)) as mask:
             label = np.asarray(mask, dtype=np.uint8)
         _, s1, s3 = trajectory_family(sample_id, self.epoch)
+        # Per-scene/epoch replay seed makes a resumed skipped batch identical.
+        self.transform.set_random_seed((stable_hash(sample_id) + 100003 * self.epoch) % (2**32))
         result = self.transform(image=image, mask=label)
         clean = result["image"]
         s1_result = A.ReplayCompose.replay(result["replay"], image=self.conditions[s1](image, sample_id), mask=label)
@@ -166,6 +197,34 @@ def _build_segformer(config: Mapping[str, Any], device: torch.device) -> torch.n
         config["models"]["segformer_b0"]["pretrained_model"], num_labels=8,
         id2label=ID2LABEL, label2id=LABEL2ID, ignore_mismatched_sizes=True,
     ).to(device)
+
+
+def validate_teacher_checkpoint_metadata(checkpoint: Mapping[str, object], expected: Mapping[str, str | None]) -> None:
+    """Accept only the frozen 100-epoch formal Baseline-936 teacher."""
+    if checkpoint.get("checkpoint_format") != "ft_reliability_pilot_v1_1" or checkpoint.get("protocol_commit") != PROTOCOL_COMMIT:
+        raise ValueError("Teacher checkpoint has an incompatible FT protocol.")
+    required = {"variant": "A", "model_name": "segformer", "run_kind": "formal", "checkpoint_selection": "final_epoch", "epoch": 100, "epoch_completed": True}
+    for key, value in required.items():
+        if checkpoint.get(key) != value:
+            raise ValueError(f"Teacher checkpoint has invalid {key}.")
+    if any(bool(checkpoint.get(key, True)) for key in ("method_development_evaluated", "validation_evaluated", "calibration_evaluated", "official_suim_test_evaluated")):
+        raise ValueError("Teacher checkpoint violates the access protocol.")
+    for key, value in expected.items():
+        if checkpoint.get(key) != value:
+            raise ValueError(f"Teacher provenance mismatch for {key}.")
+
+
+def load_frozen_teacher(path: Path, config: Mapping[str, Any], device: torch.device, expected: Mapping[str, str | None]) -> tuple[torch.nn.Module, str]:
+    if not path.is_file():
+        raise FileNotFoundError("Frozen Baseline-936 teacher checkpoint is missing.")
+    checkpoint = torch.load(path, map_location=device, weights_only=False)
+    validate_teacher_checkpoint_metadata(checkpoint, expected)
+    teacher = _build_segformer(config, device)
+    teacher.load_state_dict(checkpoint["model_state_dict"])
+    teacher.eval()
+    for parameter in teacher.parameters():
+        parameter.requires_grad_(False)
+    return teacher, sha256(path)
 
 
 def _student_logits(model: torch.nn.Module, pixels: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
@@ -183,13 +242,18 @@ def _boundary(labels: torch.Tensor) -> torch.Tensor:
 def run_one_step(
     model: torch.nn.Module, optimizer: torch.optim.Optimizer, scaler: torch.amp.GradScaler, batch: Mapping[str, Any], *,
     variant: str, epoch: int, batch_index: int, amp: bool, teacher: torch.nn.Module | None = None,
+    accumulation_steps: int = 1, accumulation_index: int = 0,
 ) -> dict[str, float]:
     """Execute one mathematically averaged three-view update and one optimizer step."""
     terms = variant_terms(variant, epoch)
     device = next(model.parameters()).device
     labels = batch["labels"].to(device)
     boundary = _boundary(labels)
-    optimizer.zero_grad(set_to_none=True)
+    if accumulation_steps < 1 or not 0 <= accumulation_index < accumulation_steps:
+        raise ValueError("Invalid gradient accumulation state.")
+    if accumulation_index == 0:
+        optimizer.zero_grad(set_to_none=True)
+    scale = 1.0 / accumulation_steps
     values = {"clean_ce": 0.0, "s1_ce": 0.0, "s3_ce": 0.0, "ft": 0.0, "retain": 0.0, "ranking": 0.0}
     with torch.amp.autocast("cuda", enabled=amp):
         clean_logits = _student_logits(model, batch["clean"].to(device), labels)
@@ -203,27 +267,33 @@ def run_one_step(
             retain = clean_retention_kl(teacher_logits, clean_logits, labels)
         clean_loss = clean_ce if terms["clean_only"] else clean_ce / 3.0
         clean_loss = clean_loss + (0.10 * retain if terms["retention"] else 0.0)
-    scaler.scale(clean_loss).backward()
+    scaler.scale(clean_loss * scale).backward()
     values["clean_ce"], values["retain"] = float(clean_ce.detach()), float(retain.detach())
     if not terms["clean_only"]:
         with torch.amp.autocast("cuda", enabled=amp):
             s1_logits = _student_logits(model, batch["s1"].to(device), labels)
             s1_ce = functional.cross_entropy(s1_logits, labels, ignore_index=IGNORE_INDEX)
-        scaler.scale(s1_ce / 3.0).backward()
+            q_s1 = top1_top2_logit_gap(s1_logits).detach()
+            prediction_s1 = s1_logits.detach().argmax(dim=1)
+        scaler.scale((s1_ce / 3.0) * scale).backward()
+        del s1_logits
         with torch.amp.autocast("cuda", enabled=amp):
             s3_logits = _student_logits(model, batch["s3"].to(device), labels)
             s3_ce = functional.cross_entropy(s3_logits, labels, ignore_index=IGNORE_INDEX)
             ft = s3_logits.sum() * 0.0
             ranking = s3_logits.sum() * 0.0
             if terms["failure_transition"]:
-                ft, _ = failure_transition_loss(s1_logits, s3_logits, labels, boundary, epoch=epoch, batch_index=batch_index)
+                ft, transition_counts = failure_transition_loss_from_s1(q_s1, prediction_s1, s3_logits, labels, boundary, epoch=epoch, batch_index=batch_index)
+            else:
+                transition_counts = {"boundary": 0, "interior": 0}
             if terms["generic_ranking"]:
                 ranking, _ = generic_correctness_ranking_loss(s3_logits, labels, boundary, epoch=epoch, batch_index=batch_index)
             s3_loss = s3_ce / 3.0 + 0.10 * ft + 0.10 * ranking
-        scaler.scale(s3_loss).backward()
-        values.update(s1_ce=float(s1_ce.detach()), s3_ce=float(s3_ce.detach()), ft=float(ft.detach()), ranking=float(ranking.detach()))
-    scaler.step(optimizer)
-    scaler.update()
+        scaler.scale(s3_loss * scale).backward()
+        values.update(s1_ce=float(s1_ce.detach()), s3_ce=float(s3_ce.detach()), ft=float(ft.detach()), ranking=float(ranking.detach()), transition_boundary=float(transition_counts["boundary"]), transition_interior=float(transition_counts["interior"]))
+    if accumulation_index == accumulation_steps - 1:
+        scaler.step(optimizer)
+        scaler.update()
     return values
 
 
@@ -236,43 +306,92 @@ def main() -> None:
     args = parser.parse_args()
     if not torch.cuda.is_available():
         raise RuntimeError("FT-Reliability training is configured for CUDA.")
+    config_path = ROOT / "configs" / "ft_reliability_pilot.yaml"
     config = load_config(ROOT)
     if any(bool(config["access_control"][key]) for key in ("method_development_evaluated", "validation_evaluated", "calibration_evaluated", "official_suim_test_evaluated")):
         raise ValueError("FT-Reliability protocol forbids evaluation during pilot training.")
-    # Metadata-only audit: this deliberately does not read development contents.
-    validate_split_manifest({
-        "method_train_count": int(config["access_control"]["method_train_count"]),
-        "method_development_count": int(config["access_control"]["method_development_count"]),
-        **dict(config["access_control"]["frozen_split_audit"]),
-    })
+    access = config["access_control"]
+    split = ROOT / access["method_train_csv"]
+    development_csv = ROOT / access["method_development_csv"]
+    audit_path = ROOT / access["frozen_split_audit_path"]
+    if sha256(split).upper() != str(access["method_train_csv_sha256"]).upper():
+        raise ValueError("method_train CSV hash differs from the frozen protocol.")
+    # Hash-only development verification: no development rows are loaded.
+    if sha256(development_csv).upper() != str(access["method_development_csv_sha256"]).upper():
+        raise ValueError("method_development CSV hash differs from the frozen protocol.")
+    if sha256(audit_path).upper() != str(access["frozen_split_audit_sha256"]).upper():
+        raise ValueError("Frozen split audit hash differs from the protocol.")
+    validate_split_manifest(json.loads(audit_path.read_text(encoding="utf-8")), method_train_sha256=str(access["method_train_csv_sha256"]), method_development_sha256=str(access["method_development_csv_sha256"]))
     seed = int(config["experiment"]["seed"])
     random.seed(seed); np.random.seed(seed); torch.manual_seed(seed)
     device = torch.device("cuda")
-    split = ROOT / config["access_control"]["method_train_csv"]
     dataset = TrajectoryDataset(ROOT, split, ROOT / config["degradations"]["registry_config"])
-    loader = DataLoader(dataset, batch_size=int(config["models"]["segformer_b0"]["base_scene_batch_size"]), shuffle=True, num_workers=0, pin_memory=True)
     model = _build_segformer(config, device)
+    initialization_sha = state_dict_sha256(model.state_dict())
     optimizer = torch.optim.AdamW(model.parameters(), lr=float(config["models"]["segformer_b0"]["learning_rate"]), weight_decay=float(config["models"]["segformer_b0"]["weight_decay"]))
     scaler = torch.amp.GradScaler("cuda", enabled=True)
+    run_kind = "smoke" if args.smoke_steps else "formal"
+    output = ROOT / config["experiment"]["output_dir"] / "segformer" / run_kind / args.variant
+    checkpoint = output / "checkpoints" / "last.pt"
+    provenance = {
+        "initialization_sha256": initialization_sha,
+        "method_train_csv_sha256": sha256(split),
+        "method_development_csv_sha256": sha256(development_csv),
+        "split_audit_sha256": sha256(audit_path),
+        "degradation_config_sha256": sha256(ROOT / config["degradations"]["registry_config"]),
+        "ft_config_sha256": sha256(config_path),
+        "teacher_checkpoint_sha256": None,
+    }
     teacher = None
     if args.variant == "E":
-        raise RuntimeError("Baseline-936 teacher production is intentionally deferred until the integration authorization.")
-    output = ROOT / config["experiment"]["output_dir"] / "segformer" / args.variant
-    checkpoint = output / "checkpoints" / "last.pt"
-    start_epoch, global_step = 1, 0
+        teacher, teacher_hash = load_frozen_teacher(ROOT / config["clean_retention"]["teacher_checkpoint"], config, device, provenance)
+        provenance["teacher_checkpoint_sha256"] = teacher_hash
+    start_epoch, start_batch, global_step = 1, 0, 0
     if args.resume:
-        start_epoch, global_step = load_completed_epoch_checkpoint(args.resume, model, optimizer, scaler, device, variant=args.variant)
-    initialization_sha = "recorded_at_first_authorized_training_run"
+        start_epoch, start_batch, global_step = load_completed_epoch_checkpoint(args.resume, model, optimizer, scaler, device, variant=args.variant, expected_provenance=provenance, requested_run_kind=run_kind, smoke_target=args.smoke_steps or None)
+        if run_kind == "smoke" and global_step >= args.smoke_steps:
+            print(json.dumps({"smoke_steps": global_step, "already_complete": True, "official_suim_test_evaluated": False}), flush=True)
+            return
+    elif run_kind == "formal" and args.variant in {"C", "D", "E"}:
+        warmup = ROOT / config["experiment"]["output_dir"] / "segformer" / "formal" / "shared_warmup" / "checkpoints" / "final.pt"
+        warmup_provenance = dict(provenance); warmup_provenance["teacher_checkpoint_sha256"] = None
+        start_epoch, start_batch, global_step = load_completed_epoch_checkpoint(warmup, model, optimizer, scaler, device, variant="shared_warmup", expected_provenance=warmup_provenance, requested_run_kind="formal")
+        if start_epoch != 6 or start_batch != 0:
+            raise ValueError("Shared warm-up must end at completed epoch five.")
+    history: list[dict[str, object]] = []
     for epoch in range(start_epoch, int(config["models"]["segformer_b0"]["epochs"]) + 1):
         dataset.set_epoch(epoch)
+        generator = torch.Generator().manual_seed(seed + epoch)
+        model_config = config["models"]["segformer_b0"]
+        accumulation_steps = int(model_config["gradient_accumulation_steps"])
+        effective_batch = int(model_config["effective_base_scene_batch_size"])
+        if effective_batch % accumulation_steps:
+            raise ValueError("Effective base-scene batch must divide by gradient accumulation steps.")
+        loader = DataLoader(dataset, batch_size=effective_batch // accumulation_steps, shuffle=True, generator=generator, num_workers=0, pin_memory=True)
+        totals: dict[str, float] = {key: 0.0 for key in ("clean_ce", "s1_ce", "s3_ce", "ft", "retain", "ranking", "transition_boundary", "transition_interior")}
+        batches = 0
         for batch_index, batch in enumerate(loader):
-            values = run_one_step(model, optimizer, scaler, batch, variant=args.variant, epoch=epoch, batch_index=batch_index, amp=True, teacher=teacher)
+            if epoch == start_epoch and batch_index < start_batch:
+                continue
+            values = run_one_step(model, optimizer, scaler, batch, variant=args.variant, epoch=epoch, batch_index=batch_index, amp=True, teacher=teacher, accumulation_steps=accumulation_steps, accumulation_index=batch_index % accumulation_steps)
+            if not all(np.isfinite(value) for value in values.values()):
+                raise FloatingPointError("FT-Reliability loss became non-finite.")
             global_step += 1
+            batches += 1
+            for key, value in values.items():
+                totals[key] += value
             if args.smoke_steps and global_step >= args.smoke_steps:
-                atomic_torch_save(checkpoint_payload(epoch, global_step, model, optimizer, scaler, variant=args.variant, initialization_sha256=initialization_sha, method_train_csv_sha256=sha256(split), degradation_config_sha256=sha256(ROOT / config["degradations"]["registry_config"])), checkpoint)
+                atomic_torch_save(checkpoint_payload(epoch, global_step, model, optimizer, scaler, variant=args.variant, **provenance, run_kind="smoke", epoch_completed=False, batch_index=batch_index, smoke_target=args.smoke_steps), checkpoint)
                 print(json.dumps({"smoke_steps": global_step, "losses": values, "method_development_evaluated": False, "official_suim_test_evaluated": False}), flush=True)
                 return
-        atomic_torch_save(checkpoint_payload(epoch, global_step, model, optimizer, scaler, variant=args.variant, initialization_sha256=initialization_sha, method_train_csv_sha256=sha256(split), degradation_config_sha256=sha256(ROOT / config["degradations"]["registry_config"])), checkpoint)
+        row = {"epoch": epoch, "global_step": global_step, **{key: value / max(batches, 1) for key, value in totals.items()}, "method_development_evaluated": False, "validation_evaluated": False, "calibration_evaluated": False, "official_suim_test_evaluated": False}
+        history.append(row)
+        output.mkdir(parents=True, exist_ok=True)
+        temporary = output / "train_history.json.tmp"; temporary.write_text(json.dumps(history, indent=2) + "\n", encoding="utf-8"); os.replace(temporary, output / "train_history.json")
+        atomic_torch_save(checkpoint_payload(epoch, global_step, model, optimizer, scaler, variant=args.variant, **provenance, run_kind=run_kind, epoch_completed=True, batch_index=None, smoke_target=args.smoke_steps or None), checkpoint)
+        if run_kind == "formal" and args.variant == "B" and epoch == 5:
+            warmup = ROOT / config["experiment"]["output_dir"] / "segformer" / "formal" / "shared_warmup" / "checkpoints" / "final.pt"
+            atomic_torch_save(checkpoint_payload(epoch, global_step, model, optimizer, scaler, variant="shared_warmup", **provenance, run_kind="formal", epoch_completed=True, batch_index=None, smoke_target=None), warmup)
 
 
 if __name__ == "__main__":
