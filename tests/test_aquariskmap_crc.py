@@ -22,4 +22,4 @@ def test_primary_score_rows_are_selected_by_label_not_dataframe_iteration():
         {"score": "aquariskmap", "coverage": 0.35, "selective_risk": 0.08},
     ]).set_index("score")
     raw, aqua = table.loc["raw_msp"], table.loc["aquariskmap"]
-    assert aqua.coverage - raw.coverage == 0.04
+    assert np.isclose(aqua.coverage - raw.coverage, 0.04)
