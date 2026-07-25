@@ -10,7 +10,7 @@ import torch
 
 from reliability.ft_reliability import atomic_torch_save
 from scripts.train_ft_reliability_pilot import (
-    CHECKPOINT_FORMAT, PROTOCOL_COMMIT, checkpoint_payload, load_completed_epoch_checkpoint, run_one_step, validate_teacher_checkpoint_metadata, variant_terms,
+    CHECKPOINT_FORMAT, PROTOCOL_COMMIT, checkpoint_payload, load_completed_epoch_checkpoint, load_config, run_one_step, validate_teacher_checkpoint_metadata, variant_terms,
 )
 
 
@@ -31,6 +31,14 @@ def test_variant_schedules_are_fixed_and_non_overlapping():
     assert not variant_terms("E", 1)["retention"] and variant_terms("E", 6)["retention"]
     with pytest.raises(ValueError):
         variant_terms("F", 1)
+
+
+def test_v12_output_and_teacher_paths_are_identical_protocol_locations():
+    config = load_config()
+    assert config["experiment"]["output_dir"] == "outputs/ft_reliability_suim_pilot_v1_2"
+    assert config["clean_retention"]["teacher_checkpoint"] == (
+        "outputs/ft_reliability_suim_pilot_v1_2/segformer/formal/A/checkpoints/final.pt"
+    )
 
 
 def test_completed_epoch_checkpoint_restores_model_optimizer_scaler_and_rng(tmp_path):

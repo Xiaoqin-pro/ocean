@@ -445,6 +445,14 @@ def main() -> None:
         output.mkdir(parents=True, exist_ok=True)
         temporary = output / "train_history.json.tmp"; temporary.write_text(json.dumps(history, indent=2) + "\n", encoding="utf-8"); os.replace(temporary, output / "train_history.json")
         atomic_torch_save(checkpoint_payload(epoch, global_step, model, optimizer, scaler, variant=args.variant, **provenance, run_kind=run_kind, epoch_completed=True, batch_index=None, smoke_target=args.smoke_steps or None), checkpoint)
+        if run_kind == "formal" and epoch == int(config["models"]["segformer_b0"]["epochs"]):
+            # E's frozen teacher path is deliberately this final-epoch artifact,
+            # never a mutable last checkpoint.
+            atomic_torch_save(
+                checkpoint_payload(epoch, global_step, model, optimizer, scaler, variant=args.variant, **provenance,
+                                   run_kind=run_kind, epoch_completed=True, batch_index=None, smoke_target=None),
+                output / "checkpoints" / "final.pt",
+            )
         if run_kind == "formal" and args.variant == "B" and epoch == 5:
             warmup = ROOT / config["experiment"]["output_dir"] / "segformer" / "formal" / "shared_warmup" / "checkpoints" / "final.pt"
             atomic_torch_save(checkpoint_payload(epoch, global_step, model, optimizer, scaler, variant="shared_warmup", **provenance, run_kind="formal", epoch_completed=True, batch_index=None, smoke_target=None), warmup)
