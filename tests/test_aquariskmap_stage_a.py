@@ -2,7 +2,9 @@ import pandas as pd
 import pytest
 
 from reliability.aquariskmap import CONDITIONS
-from scripts.evaluate_aquariskmap_stage_a import REGIONS, SCORES, aggregate_and_bootstrap
+from pathlib import Path
+
+from scripts.evaluate_aquariskmap_stage_a import REGIONS, SCORES, aggregate_and_bootstrap, contains_barred_split_component
 
 
 def _table() -> pd.DataFrame:
@@ -34,3 +36,9 @@ def test_stage_a_rejects_incomplete_condition_cluster():
     table = _table().iloc[1:].copy()
     with pytest.raises(ValueError, match="all 13 conditions"):
         aggregate_and_bootstrap(table)
+
+
+def test_stage_a_path_guard_rejects_only_real_barred_split_components():
+    assert not contains_barred_split_component(Path("D:/111/Desktop/underwater-calibration/data/val.csv"))
+    assert contains_barred_split_component(Path("D:/111/Desktop/project/data/calibration/cache"))
+    assert contains_barred_split_component(Path("D:/111/Desktop/project/data/test/cache"))

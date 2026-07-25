@@ -70,6 +70,11 @@ def _atomic_json(value: Mapping[str, Any], path: Path) -> None:
             temporary.unlink()
 
 
+def contains_barred_split_component(path: Path) -> bool:
+    """Reject a real calibration/TEST directory, not the project name itself."""
+    return any(part.lower() in {"calibration", "test"} for part in path.parts)
+
+
 def resolve_stage_a_context(root: Path, config: Mapping[str, Any], *, model_name: str) -> tuple[Path, Path, Path, Path, Path, Path]:
     """Resolve only frozen validation caches and final risk-head checkpoint."""
     if model_name not in ALLOWED_MODELS:
@@ -79,13 +84,12 @@ def resolve_stage_a_context(root: Path, config: Mapping[str, Any], *, model_name
     val_csv = (root / str(config["protocol"]["validation_split"])).resolve()
     if val_csv.name != "val.csv" or not val_csv.is_file():
         raise ValueError("Stage A may read only the frozen validation CSV.")
-    lower = str(val_csv).lower()
-    if "calibration" in lower or "test" in lower:
+    if contains_barred_split_component(val_csv):
         raise ValueError("Stage A validation path must not resolve to calibration or TEST.")
     temperature_config = root / ("configs/temperature_scaling.yaml" if model_name == "segformer" else "configs/deeplabv3_temperature_scaling.yaml")
     cache_config = yaml.safe_load(temperature_config.read_text(encoding="utf-8"))
     cache_root = (root / str(cache_config["experiment"]["output_dir"]) / "cache" / "val").resolve()
-    if not cache_root.is_dir() or any(token in str(cache_root).lower() for token in ("calibration", "test")):
+    if not cache_root.is_dir() or contains_barred_split_component(cache_root):
         raise ValueError("Stage A requires the existing frozen validation-logit cache only.")
     risk_checkpoint = (root / str(config["experiment"]["output_dir"]) / model_name / "checkpoints" / "last.pt").resolve()
     if not risk_checkpoint.is_file():
