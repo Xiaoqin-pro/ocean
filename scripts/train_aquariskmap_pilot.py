@@ -155,6 +155,11 @@ def load_completed_epoch_checkpoint(path: Path, model: AquaRiskMap, optimizer: t
     return int(checkpoint["epoch"]) + 1, int(checkpoint["global_step"]), float(checkpoint["positive_weight"])
 
 
+def smoke_is_complete(global_step: int, smoke_steps: int) -> bool:
+    """Return whether a resumed bounded smoke run has already met its target."""
+    return smoke_steps > 0 and global_step >= smoke_steps
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", required=True, choices=ALLOWED_MODELS)
@@ -184,6 +189,9 @@ def main() -> None:
         start_epoch, global_step, restored_weight = load_completed_epoch_checkpoint(args.resume, model, optimizer, scaler, device)
         if not np.isclose(restored_weight, weight):
             raise ValueError("Resumed checkpoint positive weight differs from frozen risk-head train cache.")
+    if smoke_is_complete(global_step, args.smoke_steps):
+        print(json.dumps({"smoke_steps": global_step, "already_complete": True, "official_suim_test_evaluated": False}), flush=True)
+        return
     history: list[dict[str, object]] = []
     epochs = int(config["training"]["epochs"])
     for epoch in range(start_epoch, epochs + 1):
@@ -204,7 +212,7 @@ def main() -> None:
             scaler.scale(total).backward(); scaler.step(optimizer); scaler.update(); global_step += 1; batches += 1
             for key, value in (("bce", bce), ("rank", rank), ("trajectory", trajectory), ("total", total)):
                 sums[key] += float(value.detach())
-            if args.smoke_steps and global_step >= args.smoke_steps:
+            if smoke_is_complete(global_step, args.smoke_steps):
                 atomic_torch_save(checkpoint_payload(epoch, global_step, model, optimizer, scaler, model_name=args.model, positive_weight=weight), checkpoint_path)
                 print(json.dumps({"smoke_steps": global_step, "losses": {key: value / batches for key, value in sums.items()}, "official_suim_test_evaluated": False}), flush=True)
                 return

@@ -1,7 +1,7 @@
 import torch
 
 from reliability.aquariskmap import AquaRiskMap, atomic_torch_save
-from scripts.train_aquariskmap_pilot import checkpoint_payload, load_completed_epoch_checkpoint
+from scripts.train_aquariskmap_pilot import checkpoint_payload, load_completed_epoch_checkpoint, smoke_is_complete
 
 
 def test_aquariskmap_checkpoint_round_trip_restores_completed_epoch(tmp_path):
@@ -14,3 +14,10 @@ def test_aquariskmap_checkpoint_round_trip_restores_completed_epoch(tmp_path):
     assert load_completed_epoch_checkpoint(path, restored, restored_optimizer, restored_scaler, torch.device("cpu")) == (3, 19, 3.0)
     for expected, actual in zip(model.parameters(), restored.parameters()):
         assert torch.equal(expected, actual)
+
+
+def test_completed_smoke_resume_does_not_run_an_extra_step():
+    assert smoke_is_complete(100, 100)
+    assert smoke_is_complete(101, 100)
+    assert not smoke_is_complete(99, 100)
+    assert not smoke_is_complete(0, 0)
