@@ -64,9 +64,10 @@ models:
     changing_image_size_allowed: false
 
 failure_transition:
-  truth_class_margin: z_true_minus_max_nontrue_logit
+  reliability_score: top1_minus_top2_logit_gap
   transition: s1_correct_and_s3_wrong
-  loss: mean_softplus_delta_minus_stopgrad_margin_s1_plus_margin_s3
+  transition_mask_predictions_detached: true
+  loss: mean_softplus_delta_minus_stopgrad_topgap_s1_plus_topgap_s3
   margin: 0.20
   weight: 0.10
   warmup_epochs: 5
@@ -81,11 +82,53 @@ clean_retention:
   weight: 0.10
   teacher_detached: true
   teacher: same_architecture_baseline936_trained_on_method_train_only
+  temperature: 1.0
+  direction: teacher_to_student
+  reduction: mean_over_valid_pixels
+  ignore_index: 255
+  resolution: 384
+  teacher_eval_mode: true
+  teacher_no_grad: true
+
+generic_correctness_ranking:
+  score: top1_minus_top2_logit_gap
+  source_view: family_s3_only
+  loss: mean_softplus_delta_minus_topgap_correct_plus_topgap_wrong
+  margin: 0.20
+  weight: 0.10
+  warmup_epochs: 5
+  pairs_per_batch: 4096
+  boundary_fraction: 0.50
+  sampling_seed_formula: seed_plus_100003_times_epoch_plus_batch_index
+  pair_sampling: correct_and_wrong_from_same_s3_batch
+  no_eligible_pair_loss_value: 0.0
+  replacement_when_pool_insufficient: true
 
 loss_schedule:
-  epochs_1_to_5: L_seg_plus_0.10_L_retain
-  epochs_6_to_final: L_seg_plus_0.10_L_FT_plus_0.10_L_retain
-  segmentation_loss: ce_clean_plus_ce_s1_plus_ce_s3
+  segmentation_loss: mean_of_ce_clean_ce_s1_ce_s3
+  A:
+    epochs_1_to_final: clean_ce
+  B:
+    epochs_1_to_final: mean_three_view_ce
+  C:
+    epochs_1_to_5: mean_three_view_ce
+    epochs_6_to_final: mean_three_view_ce_plus_0.10_L_CR
+  D:
+    epochs_1_to_5: mean_three_view_ce
+    epochs_6_to_final: mean_three_view_ce_plus_0.10_L_FT
+  E:
+    epochs_1_to_5: mean_three_view_ce_plus_0.10_L_retain
+    epochs_6_to_final: mean_three_view_ce_plus_0.10_L_FT_plus_0.10_L_retain
+
+memory_safe_optimization:
+  applies_to: [D, E]
+  forward_backward_order:
+    - clean_forward_then_clean_ce_and_retention_then_backward
+    - s1_forward_then_s1_ce_and_detached_topgap_and_correctness_then_backward
+    - s3_forward_then_s3_ce_transition_mask_and_ft_loss_then_backward
+    - optimizer_step_once
+  clean_graph_released_before_s1: true
+  s1_graph_released_before_s3: true
 
 comparisons:
   variants:
@@ -108,7 +151,7 @@ progression_gate:
   e_vs_b:
     macro_miou_improvement_pp_min: 1.0
     clean_miou_decrease_pp_max: 0.5
-    full_eaurc_relative_decrease_min: 0.05
+    full_eaurc_relative_decrease_min: 0.08
     boundary_eaurc_relative_decrease_min: 0.05
     error_auprc_improvement_pp_min: 1.5
     ece_absolute_worsening_max: 0.01
