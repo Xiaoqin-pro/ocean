@@ -138,9 +138,30 @@ def bootstrap_boundary_error_gap(per_image: pd.DataFrame, iterations: int, seed:
 
 
 def atomic_csv(frame: pd.DataFrame, destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = destination.with_suffix(destination.suffix + ".tmp")
     frame.to_csv(temporary, index=False)
     temporary.replace(destination)
+
+
+def partial_paths(output: Path, condition: str) -> tuple[Path, Path]:
+    root = output / "conditions"
+    return root / f"{condition}_aggregate.csv", root / f"{condition}_per_image.csv"
+
+
+def load_complete_partial(output: Path, condition: str, expected_samples: int) -> tuple[pd.DataFrame, pd.DataFrame] | None:
+    aggregate_path, image_path = partial_paths(output, condition)
+    if not aggregate_path.is_file() or not image_path.is_file():
+        return None
+    aggregate, per_image = pd.read_csv(aggregate_path), pd.read_csv(image_path)
+    if (
+        len(aggregate) != 4
+        or len(per_image) != expected_samples * 4
+        or aggregate.duplicated(["condition", "method", "region"]).any()
+        or per_image.duplicated(["condition", "method", "sample_id", "region"]).any()
+    ):
+        return None
+    return aggregate, per_image
 
 
 def resolve_boundary_cache_context(experiment: dict[str, object]) -> tuple[str, Path]:
@@ -164,6 +185,7 @@ def main() -> None:
     parser.add_argument("--radius", type=int, default=3)
     parser.add_argument("--bootstrap-iterations", type=int, default=1000)
     parser.add_argument("--bootstrap-seed", type=int, default=20260724)
+    parser.add_argument("--resume", action="store_true", help="Reuse only complete condition-level boundary results.")
     args = parser.parse_args()
     config = load_yaml(args.config.resolve())
     experiment = config["experiment"]
@@ -172,12 +194,26 @@ def main() -> None:
     expected_checkpoint = sha256(ROOT / experiment["checkpoint"])
     expected_degradation = sha256(ROOT / experiment["degradation_config"])
     evaluation_split, cache_root = resolve_boundary_cache_context(experiment)
+    output = ROOT / experiment.get("boundary_output_dir", "outputs/residual_calibration_analysis")
+    output.mkdir(parents=True, exist_ok=True)
+    expected_samples = int(experiment.get("expected_samples", 0))
+    if expected_samples <= 0:
+        raise ValueError("Boundary protocol must register the expected evaluation sample count.")
     rows: list[dict[str, object]] = []
     per_image_rows: list[dict[str, object]] = []
     for condition in CONDITIONS:
+        if args.resume:
+            partial = load_complete_partial(output, condition, expected_samples)
+            if partial is not None:
+                aggregate, per_image = partial
+                rows.extend(aggregate.to_dict("records"))
+                per_image_rows.extend(per_image.to_dict("records"))
+                print(f"resumed {condition}", flush=True)
+                continue
         payload = torch.load(cache_root / f"{condition}.pt", map_location="cpu", weights_only=False)
         validate_cache_payload(payload, split=evaluation_split, condition=condition, checkpoint_sha256=expected_checkpoint, degradation_config_sha256=expected_degradation)
         accumulators = {(method, region): RegionStats(int(config["metrics"]["ece_bins"])) for method in ("raw", "clean_global") for region in ("boundary", "interior")}
+        condition_image_rows: list[dict[str, object]] = []
         for start in range(0, len(payload["labels"]), 4):
             labels = payload["labels"][start:start + 4].to(device)
             boundary = boundary_mask(labels, args.radius)
@@ -193,13 +229,18 @@ def main() -> None:
                 for method, values in probabilities.items():
                     for region, mask in regions.items():
                         summary = pixel_summary(values[image_index:image_index + 1], labels[image_index:image_index + 1], mask[image_index:image_index + 1])
-                        per_image_rows.append({"split": evaluation_split, "condition": condition, "method": method, "sample_id": sample_id, "region": region, "boundary_radius": args.radius, **summary})
+                        condition_image_rows.append({"split": evaluation_split, "condition": condition, "method": method, "sample_id": sample_id, "region": region, "boundary_radius": args.radius, **summary})
         valid_pixels = sum(accumulator.count for (method, _), accumulator in accumulators.items() if method == "raw")
+        condition_rows: list[dict[str, object]] = []
         for (method, region), accumulator in accumulators.items():
-            rows.append({"condition": condition, "method": method, "region": region, "boundary_radius": args.radius, "region_pixel_fraction": accumulator.count / valid_pixels, **accumulator.result()})
-        print(f"processed {condition}")
-    output = ROOT / experiment.get("boundary_output_dir", "outputs/residual_calibration_analysis")
-    output.mkdir(parents=True, exist_ok=True)
+            condition_rows.append({"condition": condition, "method": method, "region": region, "boundary_radius": args.radius, "region_pixel_fraction": accumulator.count / valid_pixels, **accumulator.result()})
+        aggregate_path, image_path = partial_paths(output, condition)
+        atomic_csv(pd.DataFrame(condition_rows), aggregate_path)
+        atomic_csv(pd.DataFrame(condition_image_rows), image_path)
+        rows.extend(condition_rows)
+        per_image_rows.extend(condition_image_rows)
+        (output / "manifest.json").write_text(json.dumps({"completed_conditions": list(dict.fromkeys(row["condition"] for row in rows)), "official_suim_test_evaluated": False, "model_retrained": False}, indent=2), encoding="utf-8")
+        print(f"processed {condition}; wrote resumable partial results", flush=True)
     aggregate = pd.DataFrame(rows)
     per_image = pd.DataFrame(per_image_rows)
     bootstrap = bootstrap_boundary_error_gap(per_image, args.bootstrap_iterations, args.bootstrap_seed)

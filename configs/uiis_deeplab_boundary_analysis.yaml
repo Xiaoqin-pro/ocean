@@ -1,0 +1,16 @@
+experiment:
+  output_dir: outputs/uiis_deeplab_temperature_scaling
+  cache_dir: outputs/uiis_deeplab_temperature_scaling/cache
+  checkpoint: outputs/deeplabv3_mobilenetv3_uiis_alpha010_confirmation/checkpoints/last.pt
+  degradation_config: configs/degradation_pilot.yaml
+  splits: [calibration, confirmation]
+  evaluation_split: confirmation
+  expected_samples: 511
+  boundary_output_dir: outputs/uiis_deeplab_boundary_analysis
+  official_suim_test_locked: true
+metrics:
+  ece_bins: 15
+protocol:
+  confirmation_used_for_fitting: false
+  official_suim_test_evaluated: false
+  model_retrained_after_protocol_freeze: false
