@@ -9,6 +9,15 @@ protocol:
   risk_head_split: data/suim_processed/splits/aquariskmap_risk_head_v1
   validation_split: data/suim_processed/splits/v2_scene_grouped_deduplicated/val.csv
   calibration_split: data/suim_processed/splits/v2_scene_grouped_deduplicated/calibration.csv
+base_models:
+  segformer:
+    baseline_config: configs/baseline/segformer_b0_suim_v2_scene.yaml
+    checkpoint: outputs/segformer_b0_suim_v2_scene/checkpoints/best.pt
+  deeplab:
+    baseline_config: configs/baseline/deeplabv3_mobilenetv3_suim_v2_scene.yaml
+    checkpoint: outputs/deeplabv3_mobilenetv3_suim_v2_scene/checkpoints/best.pt
+degradations:
+  config: configs/degradation_pilot.yaml
 features:
   schema_version: aquariskmap_features_v1
   grid_size: 96
@@ -52,4 +61,4 @@ certification:
 cache:
   split_allowlist: [risk_head_train, risk_head_development]
   dtype: float16
-  required_provenance: [checkpoint_sha256, degradation_config_sha256, source_image_sha256]
+  required_provenance: [checkpoint_sha256, degradation_config_sha256, source_image_sha256, source_mask_sha256]

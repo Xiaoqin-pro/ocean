@@ -38,7 +38,7 @@ def test_cache_schema_rejects_test_and_bad_shape():
         "predicted_class": np.zeros((13, 384, 384), dtype=np.uint8),
         "sample_id": "sample", "scene_group_id": "scene", "conditions": CONDITIONS,
         "split": "risk_head_train", "model_name": "segformer", "feature_schema_version": FEATURE_SCHEMA_VERSION,
-        "checkpoint_sha256": "checkpoint", "degradation_config_sha256": "degradation", "source_image_sha256": "image",
+        "checkpoint_sha256": "checkpoint", "degradation_config_sha256": "degradation", "source_image_sha256": "image", "source_mask_sha256": "mask",
         "official_suim_test_evaluated": False,
     }
     validate_cache_payload(payload, split="risk_head_train", model_name="segformer")

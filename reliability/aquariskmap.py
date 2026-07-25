@@ -206,20 +206,21 @@ def paired_batch_plan(sample_ids: Iterable[str], *, epoch: int, base_scenes_per_
 def validate_cache_payload(payload: Mapping[str, object], *, split: str, model_name: str, expected_conditions: Sequence[str] = CONDITIONS) -> None:
     if split not in {"risk_head_train", "risk_head_development"}:
         raise ValueError("AquaRiskMap cache permits only risk_head_train/development.")
-    required = {"features", "predicted_class", "sample_id", "scene_group_id", "conditions", "split", "model_name", "feature_schema_version", "checkpoint_sha256", "degradation_config_sha256", "source_image_sha256", "official_suim_test_evaluated"}
+    required = {"features", "predicted_class", "sample_id", "scene_group_id", "conditions", "split", "model_name", "feature_schema_version", "checkpoint_sha256", "degradation_config_sha256", "source_image_sha256", "source_mask_sha256", "official_suim_test_evaluated"}
     missing = required.difference(payload)
     if missing:
         raise ValueError(f"Cache payload is missing keys: {sorted(missing)}")
-    if payload["split"] != split or payload["model_name"] != model_name or payload["feature_schema_version"] != FEATURE_SCHEMA_VERSION:
+    scalar = lambda key: payload[key].item() if isinstance(payload[key], np.ndarray) and payload[key].shape == () else payload[key]
+    if scalar("split") != split or scalar("model_name") != model_name or scalar("feature_schema_version") != FEATURE_SCHEMA_VERSION:
         raise ValueError("Cache metadata does not match the requested context.")
-    if payload["official_suim_test_evaluated"] is not False:
+    if bool(scalar("official_suim_test_evaluated")):
         raise ValueError("Official SUIM TEST must remain locked.")
-    if not all(isinstance(payload[key], str) and payload[key] for key in ("checkpoint_sha256", "degradation_config_sha256", "source_image_sha256")):
+    if not all(isinstance(scalar(key), str) and scalar(key) for key in ("checkpoint_sha256", "degradation_config_sha256", "source_image_sha256", "source_mask_sha256")):
         raise ValueError("Cache provenance hashes must be non-empty strings.")
     features, prediction = payload["features"], payload["predicted_class"]
     if not isinstance(features, np.ndarray) or features.shape != (len(expected_conditions), INPUT_CHANNELS, GRID_SIZE, GRID_SIZE) or features.dtype != np.float16 or not np.isfinite(features).all():
         raise ValueError("Cache features must be finite float16 [13,14,96,96].")
-    if not isinstance(prediction, np.ndarray) or prediction.shape != (len(expected_conditions), IMAGE_SIZE, IMAGE_SIZE) or prediction.dtype != np.uint8:
+    if not isinstance(prediction, np.ndarray) or prediction.shape != (len(expected_conditions), IMAGE_SIZE, IMAGE_SIZE) or prediction.dtype != np.uint8 or np.any(prediction > 7):
         raise ValueError("Predicted classes must be uint8 [13,384,384].")
     if tuple(str(value) for value in payload["conditions"]) != tuple(expected_conditions):
         raise ValueError("Cache condition order differs from the preregistered registry.")
