@@ -1,4 +1,4 @@
-"""Fixed FT-Reliability v1.1 SegFormer pilot driver.
+"""Fixed FT-Reliability v1.2 SegFormer pilot driver.
 
 The command interface deliberately exposes no data-path or evaluation-split
 argument.  Running this module is a future authorized action; this commit only
@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import random
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Mapping
@@ -39,7 +40,8 @@ from reliability.ft_reliability import (  # noqa: E402
 )
 
 
-PROTOCOL_COMMIT = "9f54a1c"
+PROTOCOL_COMMIT = "ft_reliability_v1_2"
+CHECKPOINT_FORMAT = "ft_reliability_pilot_v1_2"
 ALLOWED_VARIANTS = ("A", "B", "C", "D", "E")
 
 
@@ -53,6 +55,16 @@ def sha256(path: Path) -> str:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def implementation_commit(root: Path = ROOT) -> str:
+    """Record the exact source revision without making it a user-supplied value."""
+    try:
+        return subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL,
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return "unavailable"
 
 
 def state_dict_sha256(state_dict: Mapping[str, torch.Tensor]) -> str:
@@ -74,7 +86,8 @@ def variant_terms(variant: str, epoch: int) -> dict[str, bool]:
         "three_view_ce": variant != "A",
         "generic_ranking": variant == "C" and warm,
         "failure_transition": variant in {"D", "E"} and warm,
-        "retention": variant == "E",
+        # E is identical to the shared Degradation-CE warm-up through epoch 5.
+        "retention": variant == "E" and warm,
     }
 
 
@@ -101,13 +114,16 @@ def checkpoint_payload(
     epoch: int, global_step: int, model: torch.nn.Module, optimizer: torch.optim.Optimizer,
     scaler: torch.amp.GradScaler, *, variant: str, initialization_sha256: str,
     method_train_csv_sha256: str, method_development_csv_sha256: str, split_audit_sha256: str,
-    degradation_config_sha256: str, ft_config_sha256: str, teacher_checkpoint_sha256: str | None = None,
+    degradation_config_sha256: str, ft_config_sha256: str, protocol_document_sha256: str,
+    implementation_git_commit: str, teacher_checkpoint_sha256: str | None = None,
     run_kind: str, epoch_completed: bool, batch_index: int | None, smoke_target: int | None,
 ) -> dict[str, object]:
     if run_kind not in {"smoke", "formal"}:
         raise ValueError("run_kind must be smoke or formal.")
     return {
-        "checkpoint_format": "ft_reliability_pilot_v1_1", "protocol_commit": PROTOCOL_COMMIT,
+        "checkpoint_format": CHECKPOINT_FORMAT, "protocol_commit": PROTOCOL_COMMIT,
+        "protocol_document_sha256": protocol_document_sha256,
+        "implementation_git_commit": implementation_git_commit,
         "variant": variant, "model_name": "segformer", "epoch": epoch, "global_step": global_step,
         "model_state_dict": model.state_dict(), "optimizer_state_dict": optimizer.state_dict(),
         "scaler_state_dict": scaler.state_dict(), "rng_state": capture_rng_state(),
@@ -128,7 +144,7 @@ def load_completed_epoch_checkpoint(
     requested_run_kind: str, smoke_target: int | None = None,
 ) -> tuple[int, int, int]:
     checkpoint = torch.load(path, map_location=device, weights_only=False)
-    if checkpoint.get("checkpoint_format") != "ft_reliability_pilot_v1_1" or checkpoint.get("protocol_commit") != PROTOCOL_COMMIT:
+    if checkpoint.get("checkpoint_format") != CHECKPOINT_FORMAT or checkpoint.get("protocol_commit") != PROTOCOL_COMMIT:
         raise ValueError("Unsupported FT-Reliability checkpoint.")
     if checkpoint.get("variant") != variant or any(bool(checkpoint.get(key, True)) for key in ("method_development_evaluated", "validation_evaluated", "calibration_evaluated", "official_suim_test_evaluated")):
         raise ValueError("Checkpoint violates the frozen FT-Reliability access protocol.")
@@ -201,7 +217,7 @@ def _build_segformer(config: Mapping[str, Any], device: torch.device) -> torch.n
 
 def validate_teacher_checkpoint_metadata(checkpoint: Mapping[str, object], expected: Mapping[str, str | None]) -> None:
     """Accept only the frozen 100-epoch formal Baseline-936 teacher."""
-    if checkpoint.get("checkpoint_format") != "ft_reliability_pilot_v1_1" or checkpoint.get("protocol_commit") != PROTOCOL_COMMIT:
+    if checkpoint.get("checkpoint_format") != CHECKPOINT_FORMAT or checkpoint.get("protocol_commit") != PROTOCOL_COMMIT:
         raise ValueError("Teacher checkpoint has an incompatible FT protocol.")
     required = {"variant": "A", "model_name": "segformer", "run_kind": "formal", "checkpoint_selection": "final_epoch", "epoch": 100, "epoch_completed": True}
     for key, value in required.items():
@@ -254,7 +270,17 @@ def run_one_step(
     if accumulation_index == 0:
         optimizer.zero_grad(set_to_none=True)
     scale = 1.0 / accumulation_steps
-    values = {"clean_ce": 0.0, "s1_ce": 0.0, "s3_ce": 0.0, "ft": 0.0, "retain": 0.0, "ranking": 0.0}
+    values = {
+        "clean_ce": 0.0, "s1_ce": 0.0, "s3_ce": 0.0, "ft": 0.0, "retain": 0.0, "ranking": 0.0,
+        # Fixed C/E fairness audit: both objectives request 4,096 softplus terms.
+        "unique_eligible": 0.0, "sampled_terms": 0.0, "duplication_factor": 0.0,
+        "sampled_boundary": 0.0, "sampled_interior": 0.0, "zero_loss_batch": 0.0,
+        "transition_valid_pixel_rate": 0.0, "c_to_w": 0.0, "w_to_c": 0.0,
+        "c_to_c": 0.0, "w_to_w": 0.0, "retention_valid_pixel_rate": 0.0,
+    }
+    for class_id in range(8):
+        values[f"transition_class_{class_id}"] = 0.0
+        values[f"retention_class_{class_id}"] = 0.0
     with torch.amp.autocast("cuda", enabled=amp):
         clean_logits = _student_logits(model, batch["clean"].to(device), labels)
         clean_ce = functional.cross_entropy(clean_logits, labels, ignore_index=IGNORE_INDEX)
@@ -265,6 +291,10 @@ def run_one_step(
             with torch.no_grad():
                 teacher_logits = _student_logits(teacher, batch["clean"].to(device), labels)
             retain = clean_retention_kl(teacher_logits, clean_logits, labels)
+            retained = labels.ne(IGNORE_INDEX) & teacher_logits.detach().argmax(dim=1).eq(labels)
+            values["retention_valid_pixel_rate"] = float(retained.float().mean().detach())
+            for class_id in range(8):
+                values[f"retention_class_{class_id}"] = float((retained & labels.eq(class_id)).sum().detach())
         clean_loss = clean_ce if terms["clean_only"] else clean_ce / 3.0
         clean_loss = clean_loss + (0.10 * retain if terms["retention"] else 0.0)
     scaler.scale(clean_loss * scale).backward()
@@ -285,9 +315,30 @@ def run_one_step(
             if terms["failure_transition"]:
                 ft, transition_counts = failure_transition_loss_from_s1(q_s1, prediction_s1, s3_logits, labels, boundary, epoch=epoch, batch_index=batch_index)
             else:
-                transition_counts = {"boundary": 0, "interior": 0}
+                transition_counts = {"boundary": 0, "interior": 0, "unique_eligible": 0, "sampled_terms": 0, "duplication_factor": 0.0, "zero_loss": 1}
+            ranking_counts = {"boundary": 0, "interior": 0, "unique_eligible": 0, "sampled_terms": 0, "duplication_factor": 0.0, "zero_loss": 1}
             if terms["generic_ranking"]:
-                ranking, _ = generic_correctness_ranking_loss(s3_logits, labels, boundary, epoch=epoch, batch_index=batch_index)
+                ranking, ranking_counts = generic_correctness_ranking_loss(s3_logits, labels, boundary, epoch=epoch, batch_index=batch_index)
+            audit_counts = transition_counts if terms["failure_transition"] else ranking_counts
+            pred_s3 = s3_logits.detach().argmax(dim=1)
+            valid = labels.ne(IGNORE_INDEX)
+            c1, c3 = prediction_s1.eq(labels), pred_s3.eq(labels)
+            values.update(
+                unique_eligible=float(audit_counts["unique_eligible"]),
+                sampled_terms=float(audit_counts["sampled_terms"]),
+                duplication_factor=float(audit_counts["duplication_factor"]),
+                sampled_boundary=float(audit_counts["boundary"]),
+                sampled_interior=float(audit_counts["interior"]),
+                zero_loss_batch=float(audit_counts["zero_loss"]),
+                transition_valid_pixel_rate=float((c1 & ~c3 & valid).float().mean().detach()),
+                c_to_w=float((c1 & ~c3 & valid).sum().detach()),
+                w_to_c=float((~c1 & c3 & valid).sum().detach()),
+                c_to_c=float((c1 & c3 & valid).sum().detach()),
+                w_to_w=float((~c1 & ~c3 & valid).sum().detach()),
+            )
+            transition_mask = c1 & ~c3 & valid
+            for class_id in range(8):
+                values[f"transition_class_{class_id}"] = float((transition_mask & labels.eq(class_id)).sum().detach())
             s3_loss = s3_ce / 3.0 + 0.10 * ft + 0.10 * ranking
         scaler.scale(s3_loss * scale).backward()
         values.update(s1_ce=float(s1_ce.detach()), s3_ce=float(s3_ce.detach()), ft=float(ft.detach()), ranking=float(ranking.detach()), transition_boundary=float(transition_counts["boundary"]), transition_interior=float(transition_counts["interior"]))
@@ -308,6 +359,7 @@ def main() -> None:
         raise RuntimeError("FT-Reliability training is configured for CUDA.")
     config_path = ROOT / "configs" / "ft_reliability_pilot.yaml"
     config = load_config(ROOT)
+    protocol_path = ROOT / str(config["provenance"]["protocol_document"])
     if any(bool(config["access_control"][key]) for key in ("method_development_evaluated", "validation_evaluated", "calibration_evaluated", "official_suim_test_evaluated")):
         raise ValueError("FT-Reliability protocol forbids evaluation during pilot training.")
     access = config["access_control"]
@@ -340,6 +392,8 @@ def main() -> None:
         "split_audit_sha256": sha256(audit_path),
         "degradation_config_sha256": sha256(ROOT / config["degradations"]["registry_config"]),
         "ft_config_sha256": sha256(config_path),
+        "protocol_document_sha256": sha256(protocol_path),
+        "implementation_git_commit": implementation_commit(ROOT),
         "teacher_checkpoint_sha256": None,
     }
     teacher = None
@@ -352,12 +406,14 @@ def main() -> None:
         if run_kind == "smoke" and global_step >= args.smoke_steps:
             print(json.dumps({"smoke_steps": global_step, "already_complete": True, "official_suim_test_evaluated": False}), flush=True)
             return
-    elif run_kind == "formal" and args.variant in {"C", "D", "E"}:
+    elif args.variant in {"C", "D", "E"}:
         warmup = ROOT / config["experiment"]["output_dir"] / "segformer" / "formal" / "shared_warmup" / "checkpoints" / "final.pt"
         warmup_provenance = dict(provenance); warmup_provenance["teacher_checkpoint_sha256"] = None
         start_epoch, start_batch, global_step = load_completed_epoch_checkpoint(warmup, model, optimizer, scaler, device, variant="shared_warmup", expected_provenance=warmup_provenance, requested_run_kind="formal")
         if start_epoch != 6 or start_batch != 0:
             raise ValueError("Shared warm-up must end at completed epoch five.")
+    if args.variant == "E" and run_kind == "smoke" and start_epoch != 6:
+        raise ValueError("Variant E smoke may begin only from the completed shared warm-up at epoch six.")
     history: list[dict[str, object]] = []
     for epoch in range(start_epoch, int(config["models"]["segformer_b0"]["epochs"]) + 1):
         dataset.set_epoch(epoch)
@@ -368,7 +424,7 @@ def main() -> None:
         if effective_batch % accumulation_steps:
             raise ValueError("Effective base-scene batch must divide by gradient accumulation steps.")
         loader = DataLoader(dataset, batch_size=effective_batch // accumulation_steps, shuffle=True, generator=generator, num_workers=0, pin_memory=True)
-        totals: dict[str, float] = {key: 0.0 for key in ("clean_ce", "s1_ce", "s3_ce", "ft", "retain", "ranking", "transition_boundary", "transition_interior")}
+        totals: dict[str, float] = {}
         batches = 0
         for batch_index, batch in enumerate(loader):
             if epoch == start_epoch and batch_index < start_batch:
@@ -379,7 +435,7 @@ def main() -> None:
             global_step += 1
             batches += 1
             for key, value in values.items():
-                totals[key] += value
+                totals[key] = totals.get(key, 0.0) + value
             if args.smoke_steps and global_step >= args.smoke_steps:
                 atomic_torch_save(checkpoint_payload(epoch, global_step, model, optimizer, scaler, variant=args.variant, **provenance, run_kind="smoke", epoch_completed=False, batch_index=batch_index, smoke_target=args.smoke_steps), checkpoint)
                 print(json.dumps({"smoke_steps": global_step, "losses": values, "method_development_evaluated": False, "official_suim_test_evaluated": False}), flush=True)

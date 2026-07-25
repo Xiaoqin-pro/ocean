@@ -52,7 +52,8 @@ def test_ft_empty_transition_is_finite_graph_connected_zero():
     s3 = s3.detach().clone().requires_grad_()  # s3 now predicts class 0 correctly.
     s3.data[0, 0, 0, 0] = 2.0
     loss, counts = failure_transition_loss(s1, s3, labels, boundary, epoch=6, batch_index=0, max_pixels=1)
-    assert loss.item() == 0.0 and counts == {"boundary": 0, "interior": 0}
+    assert loss.item() == 0.0 and counts["boundary"] == counts["interior"] == 0
+    assert counts["unique_eligible"] == counts["sampled_terms"] == 0 and counts["zero_loss"] == 1
     loss.backward()
     assert s3.grad is not None
 
@@ -65,10 +66,11 @@ def test_generic_correctness_ranking_direction_empty_pool_and_determinism():
     good, counts = generic_correctness_ranking_loss(logits, labels, boundary, epoch=6, batch_index=2, pairs=8)
     worse = logits.detach().clone(); worse[0, 0, 0, 0] = 1.0; worse[0, 1, 0, 1] = 3.0
     bad, _ = generic_correctness_ranking_loss(worse.requires_grad_(), labels, boundary, epoch=6, batch_index=2, pairs=8)
-    assert good < bad and sum(counts.values()) == 8
+    assert good < bad and counts["sampled_terms"] == 8
     correct = torch.tensor([[[True, True]]]); labels_ignore = torch.full((1, 1, 2), IGNORE_INDEX)
     c, w, counts = deterministic_correctness_pair_sampler(correct, torch.tensor([[[True, False]]]), labels_ignore, epoch=1, batch_index=1)
-    assert len(c) == len(w) == 0 and counts == {"boundary": 0, "interior": 0}
+    assert len(c) == len(w) == 0 and counts["boundary"] == counts["interior"] == 0
+    assert counts["sampled_terms"] == 0 and counts["zero_loss"] == 1
 
 
 def test_transition_sampler_uses_valid_pixels_and_fixed_fallback():
@@ -80,6 +82,8 @@ def test_transition_sampler_uses_valid_pixels_and_fixed_fallback():
     assert torch.equal(indices_a, indices_b) and counts_a == counts_b
     assert all(int(index) != 3 for index in indices_a)
     assert counts_a["boundary"] > 0 and counts_a["interior"] > 0
+    assert counts_a["sampled_terms"] == 6 and counts_a["unique_eligible"] == 5
+    assert counts_a["duplication_factor"] > 1.0
 
 
 def test_clean_retention_masks_ignore_and_keeps_teacher_gradient_free():

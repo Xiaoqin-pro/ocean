@@ -1,13 +1,15 @@
 experiment:
   name: ft_reliability_suim_pilot_v1_2
   branch: experiment/ft-reliability-pilot
-  output_dir: outputs/ft_reliability_suim_pilot_v1
+  output_dir: outputs/ft_reliability_suim_pilot_v1_2
   seed: 20260725
 
 provenance:
   uwr_bench_frozen_parent: 8d24fdf
   aquariskmap_final_failure_commit: 5d18be8
   protocol_status: preregistered_no_implementation_no_training
+  protocol_version: ft_reliability_v1_2
+  protocol_document: reports/ft_reliability_protocol_v1_2.md
 
 access_control:
   allowed_source_split_dir: data/suim_processed/splits/aquariskmap_risk_head_v1
@@ -164,14 +166,19 @@ progression_gate:
     full_eaurc_relative_decrease_min: 0.08
     boundary_eaurc_relative_decrease_min: 0.05
     error_auprc_improvement_pp_min: 1.5
-    ece_absolute_worsening_max: 0.01
   e_vs_c:
-    full_eaurc_direction: better
-    error_auprc_direction: better
-    at_least_one_paired_bootstrap_95ci_excludes_zero: true
+    primary_endpoint: full_eaurc_improvement_C_minus_E
+    bootstrap_replicates: 1000
+    ci95_lower_bound_must_exceed: 0.0
+    error_auprc_direction: non_worse
+  calibration_safety_diagnostics:
+    ece_bins: 15
+    ece_binning: equal_width
+    report: [ece, classwise_ece, nll, brier]
+    ece_absolute_worsening_target_max: 0.01
+    standalone_stop_gate: false
   pass_rule: all_conditions_required_before_deeplab_replication
   strong_result:
     macro_miou_improvement_pp_min: 0.5
     or_severe_degradation_mean_miou_improvement_pp_min: 1.0
-    or_significant_foreground_or_boundary_improvement: true
   failure_rule: permanently_stop_ft_reliability_without_retuning_or_formal_split_access

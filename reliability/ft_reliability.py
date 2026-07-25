@@ -86,8 +86,9 @@ def _balanced_indices(
     flat_eligible, flat_boundary = eligible.reshape(-1).cpu(), boundary.reshape(-1).cpu()
     boundary_pool = torch.nonzero(flat_eligible & flat_boundary, as_tuple=False).flatten()
     interior_pool = torch.nonzero(flat_eligible & ~flat_boundary, as_tuple=False).flatten()
-    if len(boundary_pool) + len(interior_pool) == 0:
-        return boundary_pool, {"boundary": 0, "interior": 0}
+    unique_eligible = int(len(boundary_pool) + len(interior_pool))
+    if unique_eligible == 0:
+        return boundary_pool, {"boundary": 0, "interior": 0, "unique_eligible": 0, "sampled_terms": 0, "duplication_factor": 0.0, "zero_loss": 1}
     target_boundary = int(round(count * boundary_fraction))
     target_interior = count - target_boundary
     generator = _generator(seed)
@@ -122,7 +123,12 @@ def _balanced_indices(
         selected = torch.cat((selected, _draw(pool, remaining, generator, replacement=True)))
     order = torch.randperm(len(selected), generator=generator)
     selected = selected[order]
-    return selected, {"boundary": int(flat_boundary[selected].sum()), "interior": int((~flat_boundary[selected]).sum())}
+    sampled_terms = int(len(selected))
+    return selected, {
+        "boundary": int(flat_boundary[selected].sum()), "interior": int((~flat_boundary[selected]).sum()),
+        "unique_eligible": unique_eligible, "sampled_terms": sampled_terms,
+        "duplication_factor": float(sampled_terms / unique_eligible), "zero_loss": 0,
+    }
 
 
 def deterministic_transition_sampler(
@@ -195,10 +201,12 @@ def deterministic_correctness_pair_sampler(
             selected.append((_draw(c, amount, generator, replacement=True), _draw(w, amount, generator, replacement=True), fallback))
     if not selected:
         empty = torch.empty((0,), dtype=torch.long)
-        return empty, empty, {"boundary": 0, "interior": 0}
+        return empty, empty, {"boundary": 0, "interior": 0, "unique_eligible": 0, "sampled_terms": 0, "duplication_factor": 0.0, "zero_loss": 1}
     correct_indices, wrong_indices = torch.cat([value[0] for value in selected]), torch.cat([value[1] for value in selected])
     order = torch.randperm(len(correct_indices), generator=generator)
     counts = {name: sum(len(value[0]) for value in selected if value[2] == name) for name in ("boundary", "interior")}
+    unique_eligible = int(sum(usable.values()))
+    counts.update(unique_eligible=unique_eligible, sampled_terms=int(len(correct_indices)), duplication_factor=float(len(correct_indices) / max(unique_eligible, 1)), zero_loss=0)
     return correct_indices[order], wrong_indices[order], counts
 
 

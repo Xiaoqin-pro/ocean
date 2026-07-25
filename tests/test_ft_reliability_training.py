@@ -10,19 +10,25 @@ import torch
 
 from reliability.ft_reliability import atomic_torch_save
 from scripts.train_ft_reliability_pilot import (
-    PROTOCOL_COMMIT, checkpoint_payload, load_completed_epoch_checkpoint, run_one_step, validate_teacher_checkpoint_metadata, variant_terms,
+    CHECKPOINT_FORMAT, PROTOCOL_COMMIT, checkpoint_payload, load_completed_epoch_checkpoint, run_one_step, validate_teacher_checkpoint_metadata, variant_terms,
 )
 
 
 def _provenance() -> dict[str, str | None]:
-    return {"initialization_sha256": "initial", "method_train_csv_sha256": "train", "method_development_csv_sha256": "development", "split_audit_sha256": "audit", "degradation_config_sha256": "degradation", "ft_config_sha256": "config", "teacher_checkpoint_sha256": None}
+    return {
+        "initialization_sha256": "initial", "method_train_csv_sha256": "train",
+        "method_development_csv_sha256": "development", "split_audit_sha256": "audit",
+        "degradation_config_sha256": "degradation", "ft_config_sha256": "config",
+        "protocol_document_sha256": "protocol-document", "implementation_git_commit": "implementation",
+        "teacher_checkpoint_sha256": None,
+    }
 
 
 def test_variant_schedules_are_fixed_and_non_overlapping():
     assert variant_terms("A", 1) == {"clean_only": True, "three_view_ce": False, "generic_ranking": False, "failure_transition": False, "retention": False}
     assert not variant_terms("C", 5)["generic_ranking"] and variant_terms("C", 6)["generic_ranking"]
     assert not variant_terms("D", 5)["failure_transition"] and variant_terms("D", 6)["failure_transition"]
-    assert variant_terms("E", 1)["retention"] and variant_terms("E", 6)["failure_transition"]
+    assert not variant_terms("E", 1)["retention"] and variant_terms("E", 6)["retention"]
     with pytest.raises(ValueError):
         variant_terms("F", 1)
 
@@ -59,7 +65,8 @@ def test_checkpoint_rejects_wrong_variant_or_any_evaluation_access(tmp_path):
     atomic_torch_save(payload, path)
     with pytest.raises(ValueError):
         load_completed_epoch_checkpoint(path, model, optimizer, scaler, torch.device("cpu"), variant="B", expected_provenance=provenance, requested_run_kind="formal")
-    assert PROTOCOL_COMMIT == "9f54a1c"
+    assert PROTOCOL_COMMIT == "ft_reliability_v1_2"
+    assert payload["checkpoint_format"] == CHECKPOINT_FORMAT
 
 
 def test_completed_smoke_exits_and_formal_rejects_smoke_checkpoint(tmp_path):
@@ -122,3 +129,5 @@ def test_actual_driver_one_synthetic_step_for_all_five_variants():
                 parameter.requires_grad_(False)
         values = run_one_step(model, optimizer, scaler, batch, variant=variant, epoch=6, batch_index=0, amp=False, teacher=teacher)
         assert all(np.isfinite(value) for value in values.values())
+        for key in ("unique_eligible", "sampled_terms", "duplication_factor", "sampled_boundary", "sampled_interior", "zero_loss_batch"):
+            assert key in values
