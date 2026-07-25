@@ -15,6 +15,10 @@ access_control:
   method_development_csv: data/suim_processed/splits/aquariskmap_risk_head_v1/risk_head_development.csv
   method_train_count: 936
   method_development_count: 231
+  frozen_split_audit:
+    sample_id_overlap: 0
+    scene_group_overlap: 0
+    exact_duplicate_overlap: 0
   prohibited_suim_splits:
     - data/suim_processed/splits/v2_scene_grouped_deduplicated/val.csv
     - data/suim_processed/splits/v2_scene_grouped_deduplicated/calibration.csv
