@@ -61,6 +61,15 @@ def test_weighted_bce_ignores_ignore_pixels_and_uses_full_resolution():
         weighted_error_bce(scores, errors, labels, positive_weight=11.0)
 
 
+def test_boundary_bce_weight_is_numerically_stronger_than_interior_weight():
+    labels = torch.zeros(1, 32, 32, dtype=torch.long); labels[:, :, 16:] = 1
+    scores = torch.zeros(1, 1, 32, 32)
+    boundary_error = torch.zeros(1, 32, 32, dtype=torch.bool); boundary_error[:, 15, 15] = True
+    interior_error = torch.zeros(1, 32, 32, dtype=torch.bool); interior_error[:, 15, 4] = True
+    scores[:, 0, 15, 15] = -5.0; scores[:, 0, 15, 4] = -5.0
+    assert weighted_error_bce(scores, boundary_error, labels, positive_weight=2.0) > weighted_error_bce(scores, interior_error, labels, positive_weight=2.0)
+
+
 def test_ranking_loss_direction_empty_case_and_determinism():
     labels = torch.zeros(1, 4, 4, dtype=torch.long)
     errors = torch.zeros(1, 4, 4, dtype=torch.bool)
@@ -79,6 +88,8 @@ def test_trajectory_loss_requires_matching_pairs_and_new_errors():
     clean = torch.zeros(1, 1, 4, 4)
     degraded = torch.full((1, 1, 4, 4), 8.0)
     assert trajectory_loss(clean, degraded, clean_errors, degraded_errors, labels, ["a"], ["a"]).item() == 0.0
+    slightly_degraded = torch.full((1, 1, 4, 4), 0.1)
+    assert trajectory_loss(clean, slightly_degraded, clean_errors, degraded_errors, labels, ["a"], ["a"]).item() > 0.0
     assert trajectory_loss(clean, clean, clean_errors, clean_errors, labels, ["a"], ["a"]).item() == 0.0
     with pytest.raises(ValueError, match="matching sample_id"):
         trajectory_loss(clean, degraded, clean_errors, degraded_errors, labels, ["a"], ["b"])
@@ -93,6 +104,14 @@ def test_paired_sampler_and_atomic_checkpoint(tmp_path):
         assert [sample for sample, _ in batch[::2]] == [sample for sample, _ in batch[1::2]]
         assert all(condition == "clean" for _, condition in batch[::2])
         assert all(condition != "clean" for _, condition in batch[1::2])
+    observed = {
+        condition
+        for epoch in range(12)
+        for batch in paired_batch_plan(["scene_0", "scene_1", "scene_2", "scene_3"], epoch=epoch)
+        for sample_id, condition in batch
+        if sample_id == "scene_0" and condition != "clean"
+    }
+    assert len(observed) == 12
     path = tmp_path / "last.pt"
     atomic_torch_save({"epoch": 1}, path)
     assert torch.load(path, map_location="cpu", weights_only=False)["epoch"] == 1
