@@ -193,7 +193,8 @@ def evaluate_validation(root: Path, config: Mapping[str, Any], *, model_name: st
         selected = actual[score_index, :, :, index]
         rows.append({"model": model_name, "score": score, "coverage": float(grid[index]), "selective_risk": float(selected.mean()), "risk_excess": float(selected.mean() - ALPHA), "calibration_coverage": float(selection["coverage"]), "calibration_corrected_risk": float(selection["corrected_risk"]), "clusters": len(sample_ids), "conditions": len(conditions)})
     table = pd.DataFrame(rows)
-    raw, aqua = table.set_index("score").loc[["raw_msp", "aquariskmap"]]
+    indexed = table.set_index("score")
+    raw, aqua = indexed.loc["raw_msp"], indexed.loc["aquariskmap"]
     decision = {"coverage_improvement": float(aqua.coverage - raw.coverage), "selective_risk_difference": float(aqua.selective_risk - raw.selective_risk), "crc_gate_pass": bool(aqua.coverage - raw.coverage >= 0.03 and aqua.selective_risk <= raw.selective_risk), "official_suim_test_evaluated": False}
     atomic_csv(table, output / "validation_global_crc_metrics.csv")
     atomic_json(decision, output / "validation_global_crc_decision.json")
@@ -214,7 +215,11 @@ def main() -> None:
         output = ROOT / str(config["experiment"]["output_dir"]) / "stage_a" / args.model / "crc"
         if not (output / "calibration_parameters.json").is_file():
             raise ValueError("Cannot read validation before calibration CRC parameters are frozen.")
-        build_curves(ROOT, config, model_name=args.model, split="val")
+        # A prior interruption after the atomically written val curves must not
+        # trigger a second validation-data read.  The curve builder itself only
+        # writes its final NPZ after all 13 conditions have passed validation.
+        if not (output / "val_curves.npz").is_file():
+            build_curves(ROOT, config, model_name=args.model, split="val")
         evaluate_validation(ROOT, config, model_name=args.model)
 
 
