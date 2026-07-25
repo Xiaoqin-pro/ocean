@@ -44,7 +44,7 @@
 | SUIM SegFormer-B0 | Exploratory development evidence |
 | SUIM DeepLabV3-MobileNetV3-Large | Cross-architecture replication |
 | UIIS SegFormer-B0 | External fixed-protocol benchmark extension; not a second blind confirmation |
-| UIIS DeepLabV3-MobileNetV3-Large | Planned cross-dataset and cross-architecture replication |
+| UIIS DeepLabV3-MobileNetV3-Large | Completed cross-dataset and cross-architecture fixed-protocol benchmark extension |
 | SUIM official TEST | Locked final evaluation |
 
 ## 4. Reliability Evaluation
