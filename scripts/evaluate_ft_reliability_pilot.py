@@ -103,6 +103,23 @@ def _masked_segmentation(prediction: torch.Tensor, labels: torch.Tensor, region:
     return {"miou": float(metrics["miou"]), "pixel_accuracy": float(metrics["pixel_accuracy"]), "mean_dice": float(metrics["mean_dice"])}
 
 
+def error_auroc_diagnostic(value: float, errors: np.ndarray) -> tuple[float | None, bool, str | None]:
+    """Allow only the mathematically undefined one-class error target."""
+    if np.isfinite(value):
+        return float(value), True, None
+    flattened = np.asarray(errors, dtype=bool).reshape(-1)
+    if len(flattened) and np.unique(flattened).size == 1:
+        return None, False, "single_class_error_target"
+    raise AssertionError("error_auroc is non-finite despite a two-class error target.")
+
+
+def validate_finite_table(table: pd.DataFrame) -> None:
+    """error_auroc is the sole permitted undefined diagnostic field."""
+    numeric = table.select_dtypes(include=[np.number]).drop(columns=["error_auroc"], errors="ignore")
+    if not np.isfinite(numeric.to_numpy()).all():
+        raise AssertionError("A non-AUROC evaluation metric is non-finite.")
+
+
 def rows_for_batch(logits: torch.Tensor, labels: torch.Tensor, sample_ids: list[str], *, variant: str, condition: Any) -> list[dict[str, object]]:
     probabilities = logits.float().softmax(dim=1)
     prediction = probabilities.argmax(dim=1)
@@ -116,12 +133,16 @@ def rows_for_batch(logits: torch.Tensor, labels: torch.Tensor, sample_ids: list[
             mask = region[index]
             if not mask.any():
                 raise ValueError(f"Empty {region_name} region for {sample_id}.")
+            error_values = prediction[index][valid[index]].ne(labels[index][valid[index]]).detach().cpu().numpy()
             ranking = ranking_metrics_by_region(
                 uncertainty[index][valid[index]].detach().cpu().numpy(),
-                prediction[index][valid[index]].ne(labels[index][valid[index]]).detach().cpu().numpy(),
+                error_values,
                 {region_name: mask[valid[index]].detach().cpu().numpy()},
                 coverages=(0.9, 0.8, 0.7), top_fractions=(0.1,),
             )[region_name]
+            region_errors = error_values[mask[valid[index]].detach().cpu().numpy()]
+            auroc, auroc_defined, auroc_reason = error_auroc_diagnostic(float(ranking["error_auroc"]), region_errors)
+            ranking["error_auroc"] = auroc
             selected_probs = probabilities[index:index + 1]
             selected_labels = labels[index:index + 1].clone()
             selected_labels[:, ~mask] = 255
@@ -131,6 +152,7 @@ def rows_for_batch(logits: torch.Tensor, labels: torch.Tensor, sample_ids: list[
                 "region": region_name, **_masked_segmentation(prediction[index:index + 1], labels[index:index + 1], mask.unsqueeze(0)),
                 "nll": nll(selected_probs, selected_labels), "brier": brier_score(selected_probs, selected_labels),
                 "ece": expected_calibration_error(selected_probs, selected_labels, bins=15),
+                "error_auroc_defined": auroc_defined, "error_auroc_undefined_reason": auroc_reason,
                 **ranking,
             }
             for class_id, value in enumerate(classwise_ece(selected_probs, selected_labels, bins=15)):
@@ -192,10 +214,18 @@ def main() -> None:
     table = pd.DataFrame(rows)
     expected = len(VARIANTS) * len(conditions) * len(frame) * len(REGIONS)
     keys = ["variant", "condition", "sample_id", "region"]
-    if len(table) != expected or table.duplicated(keys).any() or not np.isfinite(table.select_dtypes(include=[np.number]).to_numpy()).all():
+    if len(table) != expected or table.duplicated(keys).any():
         raise AssertionError("FT development result table is incomplete or non-finite.")
+    validate_finite_table(table)
     bootstrap, primary = paired_bootstrap(table)
-    aggregate = table.groupby(["variant", "condition", "degradation_type", "severity", "region"], as_index=False).mean(numeric_only=True)
+    group_columns = ["variant", "condition", "degradation_type", "severity", "region"]
+    aggregate = table.groupby(group_columns, as_index=False).mean(numeric_only=True)
+    auroc_counts = table.groupby(group_columns, as_index=False).agg(
+        error_auroc_defined_scenes=("error_auroc_defined", "sum"),
+        error_auroc_undefined_scenes=("error_auroc_defined", lambda values: int((~values).sum())),
+        error_auroc_defined_fraction=("error_auroc_defined", "mean"),
+    )
+    aggregate = aggregate.merge(auroc_counts, on=group_columns, validate="one_to_one")
     output = ROOT / str(config["experiment"]["output_dir"]) / "development_evaluation"
     _atomic_csv(table, output / "per_image_metrics.csv")
     _atomic_csv(aggregate, output / "aggregate_metrics.csv")
