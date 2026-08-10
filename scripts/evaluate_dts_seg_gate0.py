@@ -50,15 +50,15 @@ def decision_from(frame: pd.DataFrame, config: dict[str, Any]) -> dict[str, Any]
     indexed = frame.set_index(["variant", "condition"])
     f4 = frame[frame.variant == "F4"]
     dts = frame[frame.variant == "DTS"]
-    mean_gain = 100.0 * (dts.miou.mean() - f4.miou.mean())
+    mean_gain = float(100.0 * (dts.miou.mean() - f4.miou.mean()))
     severe_names = [name for name in frame.condition.unique() if name.endswith("_s3")]
-    severe_gain = 100.0 * (
+    severe_gain = float(100.0 * (
         indexed.loc[[('DTS', name) for name in severe_names], "miou"].mean()
         - indexed.loc[[('F4', name) for name in severe_names], "miou"].mean()
-    )
-    clean_change = 100.0 * (indexed.loc[("DTS", "clean"), "miou"] - indexed.loc[("F4", "clean"), "miou"])
+    ))
+    clean_change = float(100.0 * (indexed.loc[("DTS", "clean"), "miou"] - indexed.loc[("F4", "clean"), "miou"]))
     severe_changes = {
-        name: 100.0 * (indexed.loc[("DTS", name), "miou"] - indexed.loc[("F4", name), "miou"])
+        name: float(100.0 * (indexed.loc[("DTS", name), "miou"] - indexed.loc[("F4", name), "miou"]))
         for name in severe_names
     }
     gate = config["gate"]
@@ -73,9 +73,9 @@ def decision_from(frame: pd.DataFrame, config: dict[str, Any]) -> dict[str, Any]
         "dts_minus_f4_clean_miou_pp": clean_change,
         "severity3_changes_pp": severe_changes,
         "severity3_nonnegative_families": nonnegative,
-        "magnitude_gate": magnitude,
-        "clean_safety_gate": clean_safe,
-        "family_direction_gate": nonnegative >= int(gate["severe_families_nonnegative_min"]),
+        "magnitude_gate": bool(magnitude),
+        "clean_safety_gate": bool(clean_safe),
+        "family_direction_gate": bool(nonnegative >= int(gate["severe_families_nonnegative_min"])),
         "formal_validation_evaluated": False,
         "calibration_evaluated": False,
         "official_suim_test_evaluated": False,
@@ -158,4 +158,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

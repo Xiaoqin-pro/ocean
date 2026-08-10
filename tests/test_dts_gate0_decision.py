@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 
 from scripts.evaluate_dts_seg_gate0 import decision_from
@@ -30,3 +32,6 @@ def test_gate_fails_when_too_many_severe_families_are_negative():
 def test_gate_fails_clean_safety_even_with_large_mean_gain():
     assert decision_from(table(gain=0.02, clean_gain=-0.004), config())["decision"] == "FAIL"
 
+
+def test_gate_decision_is_json_serializable():
+    json.dumps(decision_from(table(), config()))
