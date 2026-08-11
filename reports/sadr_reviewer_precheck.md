@@ -24,6 +24,13 @@
    state-of-the-art UIE methods. Response: add a reproducible public learned
    UIE baseline only if it can be run without changing the frozen protocol;
    otherwise state this limitation explicitly.
+8. **Composition diagnostic reuse.** The unseen-composition stress test reuses
+   the confirmation images. Response: label it post-freeze diagnostic evidence,
+   report both operator orders, and never present it as an independent split;
+   the primary claim remains the locked single-degradation result.
+9. **Mechanism attribution.** A reviewer may attribute the composition gain to
+   generic image reconstruction. Response: show the pixel-only composition
+   control (+0.486 pp versus full SADR +1.241 pp for the same seed).
 
 ## Data-access audit
 
