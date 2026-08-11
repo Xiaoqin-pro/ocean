@@ -105,7 +105,11 @@ confirmation-derived gate.
 SADR-8 is the first route in this repository that passes the preregistered
 +0.50 pp confirmation gate across three seeds. It is a defensible paper
 candidate, but not yet a complete submission: the contribution should be
-framed as a task-aware residual restoration front-end, and the paper still
+framed as a parameter-efficient frozen-expert robustness adapter, not as the
+first task-driven underwater enhancement method. Prior work already uses
+semantic or downstream-task guidance for underwater enhancement; the novelty
+claim must instead be the frozen-expert, zero-initialized adapter plus the
+fixed multi-condition robustness protocol. The paper still
 needs qualitative figures, exact FLOP/latency accounting, and a comparison
 with at least one conventional enhancement baseline beyond GrayWorld.
 
