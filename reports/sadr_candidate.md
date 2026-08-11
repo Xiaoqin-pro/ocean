@@ -87,9 +87,10 @@ not folded into SADR.
 
 A semantic-feature consistency term (cosine matching of the frozen expert's
 last-stage global feature for clean and restored views) reached +0.399 pp in a
-four-epoch screening run, essentially the same as the four-epoch SADR control.
-It is therefore not claimed as an additional contribution without a matched
-eight-epoch confirmation run.
+four-epoch screening run and +0.621 pp in a matched eight-epoch run, versus
++0.607 pp for the ordinary SADR run with the same seed. The +0.014 pp
+difference is not a meaningful new contribution, so the feature term is kept
+as a negative control rather than added to the main method.
 
 The small UVMulti held-out sanity subset also did not improve: common-class
 mIoU stayed around 0.322 on raw frames and 0.319 on enhanced frames for both
