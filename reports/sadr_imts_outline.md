@@ -2,16 +2,16 @@
 
 ## Working title
 
-**SADR: A Parameter-Efficient Frozen-Expert Adapter for Robust Underwater
-Semantic Segmentation under Multi-Condition Degradation**
+**SADR: Order-Stable Semantic Correction Transfer for Robust Underwater
+Segmentation with a Frozen Expert**
 
 ## One-sentence thesis
 
 Rather than retraining an underwater segmenter or optimizing enhancement for
 human visual quality, learn a zero-initialized residual image adapter using the
 frozen segmenter's semantic loss and clean/degraded public training pairs; the
-adapter improves fixed multi-condition robustness with 0.296% trainable
-parameter overhead.
+resulting semantic correction is strongly order-stable on unseen degradation
+compositions while adding only 0.296% trainable parameter overhead.
 
 ## Contributions to claim
 
@@ -31,6 +31,12 @@ parameter overhead.
    +1.302 pp. Label it diagnostic because it reuses the confirmation images;
    explain that its lower baseline (0.4209 versus 0.4799 in the primary table)
    creates more error headroom rather than implying a contradictory benchmark.
+5. A mechanism analysis showing a compositionality hierarchy in the frozen
+   expert's semantic correction field: order consistency (0.975 cosine) is
+   strong, binary additivity is moderate (0.785), and triple closure is weak
+   (0.535). Directly imposing these relations harms the primary task, so the
+   reported transfer is treated as an emergent property rather than a claimed
+   linear law.
 
 ## Claims not to make
 
@@ -70,14 +76,17 @@ report the mean -0.178 pp and do not hide it.
    role, 110-image SUIM external role, and 13 deterministic conditions. State
    that confirmation/test data never influence training or thresholds.
 5. **Results:** main table, three-seed error bars, per-family plot, unseen
-   composition stress-test table, and
+   composition stress-test table, semantic-correction compositionality
+   hierarchy, and
    qualitative grid. Use the condition-gain plot in
    `outputs/sadr_long/condition_gain_plot.png` and qualitative grid in
    `outputs/sadr_long/qualitative_grid.png`.
 6. **Ablation:** pixel-only, no reconstruction, no distillation, frequency
    split, feature consistency, routed experts, GrayWorld, and LAB-CLAHE.
    Emphasize that task loss is necessary but extra architectural branches and
-   ordinary contrast enhancement did not explain the gain.
+   ordinary contrast enhancement did not explain the gain. Include additive,
+   logit-order, probability-KL, and composite-distillation controls as failed
+   attempts to impose compositionality.
 7. **Limitations:** source-domain cost, blur-s3 weakness, partial UVMulti,
    and the 21.4% measured latency overhead despite tiny parameter overhead.
 

@@ -57,12 +57,28 @@ def atomic_save(value: dict[str, Any], path: Path) -> None:
 
 
 class UIISTrajectoryDataset(Dataset[dict[str, Any]]):
-    def __init__(self, split_csv: Path, registry: Path, image_size: int, include_route_views: bool = False) -> None:
+    def __init__(
+        self,
+        split_csv: Path,
+        registry: Path,
+        image_size: int,
+        include_route_views: bool = False,
+        include_composition_views: bool = False,
+    ) -> None:
         self.frame = pd.read_csv(split_csv).sort_values("sample_id").reset_index(drop=True)
         if split_csv.name != "train.csv" or len(self.frame) != 2371:
             raise PermissionError("UIIS replication training accepts only the frozen 2,371-image train split.")
         self.conditions = {item.name: build_image_degradation(item) for item in load_conditions(registry)}
         self.include_route_views = include_route_views
+        self.include_composition_views = include_composition_views
+        self.composition_pairs = (
+            ("color", "turbidity"),
+            ("color", "lowlight"),
+            ("color", "blur"),
+            ("turbidity", "lowlight"),
+            ("turbidity", "blur"),
+            ("lowlight", "blur"),
+        )
         self.epoch = 1
         self.transform = A.ReplayCompose(
             [
@@ -100,6 +116,28 @@ class UIISTrajectoryDataset(Dataset[dict[str, Any]]):
                 name = f"{family}_s1"
                 replay = A.ReplayCompose.replay(base["replay"], image=self.conditions[name](image_array, sample_id), mask=mask_array)
                 result[f"route_{family}"] = replay["image"].float()
+        if self.include_composition_views:
+            # Rotate through all unordered family pairs and both application
+            # orders using only the training sample id and epoch.  These views
+            # are intentionally unlabeled: they are used only by the semantic
+            # compositionality regularizer, not by the segmentation loss.
+            digest = hashlib.sha256(f"composition:{sample_id}:{self.epoch}".encode()).digest()
+            pair_index = int.from_bytes(digest[:8], "big") % len(self.composition_pairs)
+            first_family, second_family = self.composition_pairs[pair_index]
+            if digest[8] % 2:
+                first_family, second_family = second_family, first_family
+            first = self.conditions[f"{first_family}_s2"](image_array, sample_id)
+            second = self.conditions[f"{second_family}_s2"](image_array, sample_id)
+            composed = self.conditions[f"{second_family}_s2"](first, sample_id)
+            reverse_composed = self.conditions[f"{first_family}_s2"](second, sample_id)
+            for key, image in (
+                ("composition_a", first),
+                ("composition_b", second),
+                ("composition_ab", composed),
+                ("composition_ba", reverse_composed),
+            ):
+                replay = A.ReplayCompose.replay(base["replay"], image=image, mask=mask_array)
+                result[key] = replay["image"].float()
         return result
 
 

@@ -153,15 +153,29 @@ confirmation-derived gate.
 ## Current scientific status
 
 SADR-8 is the first route in this repository that passes the preregistered
-+0.50 pp confirmation gate across three seeds. It is a defensible paper
-candidate, but not yet a complete submission: the contribution should be
-framed as a parameter-efficient frozen-expert robustness adapter, not as the
-first task-driven underwater enhancement method. Prior work already uses
-semantic or downstream-task guidance for underwater enhancement; the novelty
-claim must instead be the frozen-expert, zero-initialized adapter plus the
-fixed multi-condition robustness protocol. The paper still
-needs qualitative figures, exact FLOP/latency accounting, and a comparison
-with at least one conventional enhancement baseline beyond GrayWorld.
++0.50 pp confirmation gate across three seeds. The stronger mechanism result
+is the three-seed compositionality screen: semantic corrections are highly
+order-consistent (mean cosine 0.975), moderately binary-additive (0.785), and
+only partially triple-closed (0.535), while the frozen checkpoints improve
+eight unseen ordered compositions by +1.302 pp on average. This gives the
+paper a specific scientific question—why a task-supervised correction field
+transfers to unseen compositions—rather than only a parameter-count claim.
+
+Direct additive, order-consistency, probability-KL, and unlabeled composite
+distillation penalties all reduced the primary confirmation gain to about
++0.36 pp in matched seed-1 screens. They are retained as negative evidence,
+not folded into SADR. The safe method claim is therefore the emergent
+order-stable semantic correction of the frozen-expert adapter, accompanied by
+the compositional stress test and its mechanism controls; it is not an exact
+linear-composition law.
+
+The contribution should still not be framed as the first task-driven
+underwater enhancement method. Prior work already uses semantic or
+downstream-task guidance. The novelty claim should be the frozen-expert,
+zero-initialized adapter, the observed semantic compositional-transfer
+mechanism, and the fixed multi-condition protocol. The paper still needs
+qualitative figures, exact FLOP/latency accounting, and a comparison with at
+least one conventional enhancement baseline beyond GrayWorld.
 
 The failed routes remain recorded separately and should be used as negative
 evidence rather than omitted.
