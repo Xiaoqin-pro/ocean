@@ -67,8 +67,9 @@ report the mean -0.178 pp and do not hide it.
    `outputs/sadr_long/condition_gain_plot.png` and qualitative grid in
    `outputs/sadr_long/qualitative_grid.png`.
 6. **Ablation:** pixel-only, no reconstruction, no distillation, frequency
-   split, feature consistency, and routed experts. Emphasize that task loss is
-   necessary but extra architectural branches did not help.
+   split, feature consistency, routed experts, GrayWorld, and LAB-CLAHE.
+   Emphasize that task loss is necessary but extra architectural branches and
+   ordinary contrast enhancement did not explain the gain.
 7. **Limitations:** source-domain cost, blur-s3 weakness, partial UVMulti,
    and the 21.4% measured latency overhead despite tiny parameter overhead.
 
@@ -78,5 +79,6 @@ report the mean -0.178 pp and do not hide it.
   GrayWorld if a reproducible public implementation can be obtained.
 - Report exact latency hardware and batch size, not only parameter count.
 - Include per-condition results rather than only a single mean.
+- Include both GrayWorld and LAB-CLAHE as non-learning controls.
 - Keep confirmation/test access hashes and split counts in the appendix.
 - Explain why three seeds are a stability check, not a population-level claim.
