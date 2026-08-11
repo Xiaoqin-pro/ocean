@@ -142,6 +142,17 @@ def semantic_view_consistency(student: torch.Tensor, batch_size: int) -> torch.T
     return divergence.sum(dim=2).mean()
 
 
+def gradient_reconstruction_loss(restored: torch.Tensor, clean: torch.Tensor) -> torch.Tensor:
+    """Match first-order image gradients while preserving the task objective."""
+    if restored.shape != clean.shape or restored.ndim != 4:
+        raise ValueError("Expected matching BCHW restored and clean tensors.")
+    restored_dx = restored[..., :, 1:] - restored[..., :, :-1]
+    clean_dx = clean[..., :, 1:] - clean[..., :, :-1]
+    restored_dy = restored[..., 1:, :] - restored[..., :-1, :]
+    clean_dy = clean[..., 1:, :] - clean[..., :-1, :]
+    return (restored_dx - clean_dx).abs().mean() + (restored_dy - clean_dy).abs().mean()
+
+
 def semantic_feature_consistency(student: torch.Tensor, teacher: torch.Tensor) -> torch.Tensor:
     """Match global semantic directions while leaving spatial details learnable."""
     if student.ndim != 4 or teacher.ndim != 4 or student.shape[0] != teacher.shape[0] or student.shape[1] != teacher.shape[1]:

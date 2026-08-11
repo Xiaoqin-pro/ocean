@@ -108,6 +108,14 @@ synthetic degradation family. With the same seed and eight epochs it reached
 negative control: the gain comes from task-supervised residual adaptation,
 not from adding a generic consistency penalty.
 
+An edge-preserving reconstruction term was screened specifically for the
+blur-s3 weakness. It adds first-order gradient matching to the pixel
+reconstruction objective. The same-seed confirmation gain was +0.612 pp
+(ordinary SADR: +0.607 pp), while blur-s3 remained negative (-0.47 pp versus
+-0.54 pp for ordinary SADR); the SUIM change was -0.117 pp. The 0.006 pp mean
+difference is too small to justify a second claimed mechanism, so this variant
+is also retained as a negative control.
+
 The small UVMulti held-out sanity subset also did not improve: common-class
 mIoU stayed around 0.322 on raw frames and 0.319 on enhanced frames for both
 SADR seeds. This prevents claiming cross-dataset generalization from the

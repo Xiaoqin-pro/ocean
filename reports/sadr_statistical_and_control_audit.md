@@ -37,6 +37,12 @@ The paired difference is +0.0003 pp, far below the seed-to-seed spread. The
 consistency term is retained as a negative control and is not part of the
 claimed method.
 
+An edge-preserving reconstruction control adds first-order gradient matching to
+the pixel loss. It reaches +0.6125 pp on confirmation and -0.1171 pp on SUIM
+official; blur-s3 remains negative. The +0.0058 pp confirmation difference
+from ordinary SADR is below the seed spread and is not claimed as a separate
+mechanism.
+
 ## Safe interpretation
 
 The evidence supports the narrower claim that a zero-initialized,
