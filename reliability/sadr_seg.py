@@ -39,6 +39,80 @@ class SADRFrontEnd(nn.Module):
         return image + residual, residual
 
 
+class FrequencySADRFrontEnd(nn.Module):
+    """Task-aware rectifier with separate low/high-frequency residual paths."""
+
+    def __init__(self, channels: int = 3, hidden: int = 24) -> None:
+        super().__init__()
+        self.low = nn.Sequential(
+            nn.Conv2d(channels, hidden, 3, padding=1),
+            nn.GELU(),
+            nn.Conv2d(hidden, hidden, 3, padding=1),
+            nn.GELU(),
+        )
+        self.high = nn.Sequential(
+            nn.Conv2d(channels, hidden, 3, padding=1),
+            nn.GELU(),
+            nn.Conv2d(hidden, hidden, 3, padding=1),
+            nn.GELU(),
+        )
+        self.fuse = nn.Conv2d(hidden * 2, channels, 1)
+        nn.init.zeros_(self.fuse.weight)
+        nn.init.zeros_(self.fuse.bias)
+        self.scale = nn.Parameter(torch.tensor(0.10))
+
+    def forward(self, image: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        low = functional.avg_pool2d(image, kernel_size=3, stride=1, padding=1)
+        high = image - low
+        low_feature = self.low(low)
+        high_feature = self.high(high)
+        residual = torch.tanh(self.fuse(torch.cat([low_feature, high_feature], dim=1))) * self.scale.clamp(0.01, 0.50)
+        return image + residual, residual
+
+
+class RoutedSADRFrontEnd(nn.Module):
+    """Soft degradation-family mixture of residual experts.
+
+    The router is trained with the synthetic family label but only consumes
+    the image at inference.  All experts start at zero, so the module is an
+    identity map before optimization and cannot damage the frozen expert at
+    initialization.
+    """
+
+    def __init__(self, channels: int = 3, hidden: int = 16, families: int = 4) -> None:
+        super().__init__()
+        self.families = families
+        experts = []
+        for _ in range(families):
+            expert = nn.Sequential(
+                nn.Conv2d(channels, hidden, 3, padding=1),
+                nn.GELU(),
+                nn.Conv2d(hidden, hidden, 3, padding=1),
+                nn.GELU(),
+                nn.Conv2d(hidden, channels, 3, padding=1),
+            )
+            nn.init.zeros_(expert[-1].weight)
+            nn.init.zeros_(expert[-1].bias)
+            experts.append(expert)
+        self.experts = nn.ModuleList(experts)
+        self.router = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Linear(channels, 16),
+            nn.GELU(),
+            nn.Linear(16, families),
+        )
+        self.scale = nn.Parameter(torch.tensor(0.10))
+
+    def forward(self, image: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        router_logits = self.router(image)
+        weights = functional.softmax(router_logits, dim=1)
+        expert_residuals = torch.stack([expert(image) for expert in self.experts], dim=1)
+        residual = (expert_residuals * weights[:, :, None, None, None]).sum(dim=1)
+        residual = torch.tanh(residual) * self.scale.clamp(0.01, 0.50)
+        return image + residual, residual, router_logits
+
+
 def segmentation_loss(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     resized = functional.interpolate(logits.float(), size=labels.shape[-2:], mode="bilinear", align_corners=False)
     return functional.cross_entropy(resized, labels, ignore_index=255)

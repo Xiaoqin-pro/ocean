@@ -57,11 +57,12 @@ def atomic_save(value: dict[str, Any], path: Path) -> None:
 
 
 class UIISTrajectoryDataset(Dataset[dict[str, Any]]):
-    def __init__(self, split_csv: Path, registry: Path, image_size: int) -> None:
+    def __init__(self, split_csv: Path, registry: Path, image_size: int, include_route_views: bool = False) -> None:
         self.frame = pd.read_csv(split_csv).sort_values("sample_id").reset_index(drop=True)
         if split_csv.name != "train.csv" or len(self.frame) != 2371:
             raise PermissionError("UIIS replication training accepts only the frozen 2,371-image train split.")
         self.conditions = {item.name: build_image_degradation(item) for item in load_conditions(registry)}
+        self.include_route_views = include_route_views
         self.epoch = 1
         self.transform = A.ReplayCompose(
             [
@@ -92,7 +93,14 @@ class UIISTrajectoryDataset(Dataset[dict[str, Any]]):
         for key, name in zip(("s1", "s2", "s3"), names[1:], strict=True):
             replay = A.ReplayCompose.replay(base["replay"], image=self.conditions[name](image_array, sample_id), mask=mask_array)
             views[key] = replay["image"].float()
-        return {**views, "labels": base["mask"].long(), "sample_id": sample_id}
+        family_id = ("color", "turbidity", "lowlight", "blur").index(names[1].split("_")[0])
+        result = {**views, "labels": base["mask"].long(), "sample_id": sample_id, "family_id": family_id}
+        if self.include_route_views:
+            for family in ("color", "turbidity", "lowlight", "blur"):
+                name = f"{family}_s1"
+                replay = A.ReplayCompose.replay(base["replay"], image=self.conditions[name](image_array, sample_id), mask=mask_array)
+                result[f"route_{family}"] = replay["image"].float()
+        return result
 
 
 def build_models(config: dict[str, Any], variant: str, device: torch.device) -> torch.nn.Module:

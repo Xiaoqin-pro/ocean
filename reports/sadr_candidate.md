@@ -4,9 +4,9 @@
 
 Semantic-Aware Degradation Restoration (SADR) keeps the trained UIIS-F4
 segmentation expert frozen and inserts a zero-initialized residual image
-front-end before it.  The front-end is trained only on the public UIIS train
-split.  Each training sample supplies a clean image and three fixed synthetic
-degradations from the preregistered 13-condition registry.  The objective is
+front-end before it. The front-end is trained only on the public UIIS train
+split. Each training sample supplies a clean image and three fixed synthetic
+degradations from the preregistered 13-condition registry. The objective is
 
 \[
  L = L_{seg}(f(R(x_d)), y) + 0.10\|R(x_d)-x_c\|_1
@@ -32,21 +32,26 @@ three turbidity, three low-light, and three blur severities.
 
 | model | UIIS confirmation mean mIoU | change |
 |---|---:|---:|
-| UIIS-F4 | 0.479872 | — |
+| UIIS-F4 | 0.479872 | baseline |
 | SADR-4 | 0.483846 | +0.397 pp |
 | **SADR-8, seed 20260811** | **0.485939** | **+0.607 pp** |
 | **SADR-8, seed 20260812** | **0.487471** | **+0.760 pp** |
+| **SADR-8, seed 20260813** | **0.488595** | **+0.872 pp** |
 
-Across the two seeds, the confirmation gain is +0.684 pp on average (sample
-standard deviation 0.108 pp).
+Across three seeds, the confirmation gain is +0.746 pp on average (sample
+standard deviation 0.109 pp; one-sample t-test against zero, p=0.0105).
 
-SADR-8 improves clean, color, turbidity, and low-light conditions.  Blur-s3
-remains a weakness (0.3948 versus 0.4001 for UIIS-F4).
+The gain is not uniform across degradation families. Averaged over seeds and
+the three severities, color attenuation improves by +1.56 pp, low-light by
++0.89 pp, turbidity by +0.62 pp, while blur is essentially unchanged (+0.03
+pp). Blur-s3 remains the only consistently negative condition (about -0.43
+pp).
 
-On the untouched SUIM official test, UIIS-F4 is 0.413955.  SADR-8 is 0.412657
-(−0.130 pp) for seed 20260811 and 0.411987 (−0.197 pp) for seed 20260812.
-This is a small source-domain cost, not the catastrophic forgetting seen in
-the joint-domain and routing routes.
+On the untouched SUIM official test, UIIS-F4 is 0.413955. SADR-8 changes are
+-0.130, -0.197, and -0.207 pp for the three seeds (mean -0.178 pp, sample
+standard deviation 0.034 pp). This is a small source-domain cost, not the
+catastrophic forgetting seen in the joint-domain and routing routes, but it
+must be reported rather than hidden.
 
 ## Ablations on the same confirmation split
 
@@ -59,23 +64,44 @@ the joint-domain and routing routes.
 
 The decisive comparison is pixel-only versus task-supervised SADR: image
 reconstruction alone gives only a small gain, while optimizing the frozen
-segmenter’s semantic loss produces the robust improvement.  The no-distillation
+segmenter's semantic loss produces the robust improvement. The no-distillation
 result shows that the semantic task loss is the essential component; the
 distillation term is optional stabilization rather than the claimed novelty.
+
+## Complexity and negative controls
+
+The SADR front-end has 11,012 trainable parameters. The frozen UIIS-F4 expert
+has 3,716,200 parameters, so the trainable overhead is 0.296% of the expert.
+At 384x384 on the experiment laptop GPU, a 30-iteration CUDA-event benchmark
+measured 11.14 ms for UIIS-F4 and 13.53 ms for UIIS-F4+SADR (+21.4% latency).
+It adds one small convolutional image pass before the unchanged segmenter.
+
+Two more expressive variants were tested without changing the frozen protocol.
+A low/high-frequency split front-end reached only +0.269 pp on confirmation
+and +0.064 pp on SUIM official. A four-expert degradation-family router
+reached +0.345 pp after correcting the route-label sampler (the uncorrected
+random-label version was +0.369 pp), with SUIM changes of -0.133 pp and
+-0.157 pp respectively. The corrected router classified the synthetic family
+only 31.4% accurately (25% chance), so it is retained as a negative control,
+not folded into SADR.
+
+The small UVMulti held-out sanity subset also did not improve: common-class
+mIoU stayed around 0.322 on raw frames and 0.319 on enhanced frames for both
+SADR seeds. This prevents claiming cross-dataset generalization from the
+available partial UVMulti download.
+
+The calibration-fitted quality gate was deliberately rejected: it reduced the
+confirmation gain to +0.243 pp. The final candidate therefore uses no
+confirmation-derived gate.
 
 ## Current scientific status
 
 SADR-8 is the first route in this repository that passes the preregistered
-\(+0.50\) pp confirmation gate and retains the external SUIM score within
-0.13 pp.  It is therefore a defensible paper candidate, but not yet a complete
-submission: the contribution should be framed as a task-aware residual
-restoration front-end, and the paper still needs qualitative figures,
-parameter/FLOP accounting, a second random seed, and a comparison with at
-least one conventional enhancement baseline.
++0.50 pp confirmation gate across three seeds. It is a defensible paper
+candidate, but not yet a complete submission: the contribution should be
+framed as a task-aware residual restoration front-end, and the paper still
+needs qualitative figures, exact FLOP/latency accounting, and a comparison
+with at least one conventional enhancement baseline beyond GrayWorld.
 
 The failed routes remain recorded separately and should be used as negative
 evidence rather than omitted.
-
-The calibration-fitted quality gate was deliberately rejected: it reduced the
-confirmation gain to +0.243 pp.  The final candidate therefore uses no
-confirmation-derived gate.
