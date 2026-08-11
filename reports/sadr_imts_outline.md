@@ -82,3 +82,14 @@ report the mean -0.178 pp and do not hide it.
 - Include both GrayWorld and LAB-CLAHE as non-learning controls.
 - Keep confirmation/test access hashes and split counts in the appendix.
 - Explain why three seeds are a stability check, not a population-level claim.
+
+## References to verify during writing
+
+- TFUIE, *Task-Friendly Underwater Image Enhancement for Machine Vision
+  Applications*, DOI [10.1109/TGRS.2023.3340244](https://doi.org/10.1109/TGRS.2023.3340244).
+- STSC, *Semantic-aware Texture-Structure Feature Collaboration for Underwater
+  Image Enhancement*, [arXiv:2211.10608](https://arxiv.org/abs/2211.10608).
+- HSRUIE, *Task-Driven Underwater Image Enhancement via Hierarchical Semantic
+  Refinement*, DOI [10.1109/TIP.2025.3647323](https://doi.org/10.1109/TIP.2025.3647323).
+- UWSegFormer, a recent underwater segmentation comparison with explicit
+  ablations and complexity reporting, [arXiv:2503.23422](https://arxiv.org/abs/2503.23422).
