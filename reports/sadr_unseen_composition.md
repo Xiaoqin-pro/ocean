@@ -34,6 +34,15 @@ The exact per-seed JSON records are stored beside each checkpoint in
 `outputs/sadr_seed2/unseen_compositions.json`, and
 `outputs/sadr_seed3/unseen_compositions.json`.
 
+## Mechanism ablation
+
+The seed-20260811 pixel-only checkpoint was evaluated with the same diagnostic
+and achieved only +0.486 pp on average. Full SADR achieved +1.241 pp on the
+same eight compositions, a +0.755 pp gap. In particular, pixel-only gains on
+lowlight/blur were close to zero, while the task-supervised adapter remained
+positive. This supports the interpretation that semantic supervision, rather
+than generic image reconstruction, drives the compositional transfer.
+
 ## Interpretation boundary
 
 This supports the narrower statement that the task-supervised residual
