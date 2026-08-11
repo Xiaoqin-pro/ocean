@@ -1,0 +1,53 @@
+experiment:
+  name: rcr_oracle_r1a_v1
+  branch: experiment/rcr-oracle-screen
+  r0_result_commit: 85fe7e102f739ef012f150c5f1173ecbb09b94fa
+  r0_result_report: reports/rcr_oracle_r0_result.md
+  r0_result_report_sha256: 8F9B337A1EEC12DF81F0871BD13521379B46E6A79A24F1CC3E19AEC3BB7F4D75
+  seed: 20260728
+  output_dir: outputs/rcr_oracle_r1a
+scope:
+  gate: R1a_uncompressed_gt_crop_local_refinement
+  training_allowed: false
+  compression_allowed: false
+  byte_budget_allowed: false
+  calibration_read_allowed: false
+  validation_read_allowed: false
+  official_suim_test_read_allowed: false
+  external_data_read_allowed: false
+data:
+  development_csv: data/suim_processed/splits/aquariskmap_risk_head_v1/risk_head_development.csv
+  development_csv_sha256: FF27E7E33B3BE077D44DBE1B2B7F4649ED691CBC8D8C3F0DFD06DC64D35335E6
+  samples: 231
+  image_size: 384
+  ignore_index: 255
+  deterministic_resize_only: true
+models:
+  local_deeplab_checkpoint: outputs/deeplabv3_mobilenetv3_suim_v2_scene/checkpoints/best.pt
+  local_deeplab_sha256: 041655E0793D0F5DF792571E2F1FF9322082540971AE1A12709FC960DE7AAF59
+  remote_segformer_checkpoint: outputs/segformer_b0_suim_v2_scene/checkpoints/best.pt
+  remote_segformer_sha256: 62CF10BA021B7E24429477C9C9C4690650EB0945D39E19DA0A8DEB3BB1132A5A
+degradations:
+  registry_config: configs/degradation_pilot.yaml
+  registry_config_sha256: 706A1DA10870C0659CD9CC35D8472F22FC727B2292933FEBD26961BB7666CF93
+  conditions: [clean, color_s1, color_s2, color_s3, turbidity_s1, turbidity_s2, turbidity_s3, lowlight_s1, lowlight_s2, lowlight_s3, blur_s1, blur_s2, blur_s3]
+crop_protocol:
+  error_components: local_prediction_error_8_connected
+  core_box: tight_axis_aligned_component_bbox
+  context_padding_px: 32
+  merge_context_boxes: intersect_or_touch_transitively
+  remote_input: current_condition_uncompressed_rgb_context_crop
+  remote_crop_preprocess: fixed_resize_to_384_then_imagenet_normalize
+  replace: unconditional_all_original_core_box_pixels
+metrics:
+  regions: [full, boundary_radius_3, interior]
+  bootstrap_replicates: 1000
+  r0_oracle_macro_miou_gain: 0.0847755414222048
+gate_r1a:
+  macro_miou_improvement_min: 0.01
+  oracle_gain_recovery_fraction_min: 0.40
+  positive_family_count_min: 3
+  bootstrap_ci95_lower_must_exceed: 0.0
+  damage_to_repair_ratio_max: 0.50
+  mean_context_area_ratio_max: 0.75
+  fail_action: permanently_close_rcr_without_compression_or_selector

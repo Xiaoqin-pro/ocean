@@ -1,0 +1,25 @@
+experiment:
+  name: segformer_b0_uiis_alpha010_confirmation
+  seed: 20260723
+  output_dir: outputs/segformer_b0_uiis_alpha010_confirmation
+  protocol: fixed_epoch_training_no_confirmation_access
+data:
+  image_size: 384
+  num_classes: 8
+  batch_size: 2
+  num_workers: 0
+  split_dir: data/uiis_processed/splits/uiis_alpha010_confirmation
+model:
+  pretrained_model: nvidia/mit-b0
+  num_labels: 8
+  do_reduce_labels: false
+training:
+  epochs: 60
+  learning_rate: 0.00006
+  weight_decay: 0.01
+  amp: true
+  checkpoint_every_epochs: 1
+  scheduler: cosine_annealing
+loss:
+  name: cross_entropy
+  ignore_index: 255

@@ -1,0 +1,45 @@
+experiment:
+  name: dts_seg_gate0
+  branch: experiment/dts-seg
+  seed: 20260811
+  output_dir: outputs/dts_seg_gate0
+
+data:
+  train_csv: data/suim_processed/splits/aquariskmap_risk_head_v1/risk_head_train.csv
+  development_csv: data/suim_processed/splits/aquariskmap_risk_head_v1/risk_head_development.csv
+  train_images: 936
+  development_images: 231
+  image_size: 384
+  degradation_registry: configs/degradation_pilot.yaml
+  trajectory: [clean, s1, s2, s3]
+
+model:
+  architecture: segformer_b0
+  pretrained_model: nvidia/mit-b0
+  source_checkpoint: outputs/ft_reliability_suim_pilot_v1_2/segformer/formal/B/checkpoints/final.pt
+  source_variant: B
+  num_classes: 8
+
+training:
+  variants: [F4, DTS]
+  epochs: 8
+  batch_size: 4
+  learning_rate: 0.00001
+  weight_decay: 0.01
+  amp: true
+  segmentation_loss: mean_four_view_cross_entropy
+  dts_weight: 0.05
+  acceleration_tolerance: 0.05
+  eligibility: previous_view_prediction_correct
+  checkpoint_selection: final_epoch
+
+gate:
+  primary: dts_minus_f4_13_condition_mean_miou_pp
+  primary_min: 0.50
+  alternative_severe_mean_miou_pp_min: 1.00
+  clean_miou_decrease_pp_max: 0.30
+  severe_families_nonnegative_min: 3
+  official_suim_test_locked: true
+  formal_validation_locked: true
+  calibration_locked: true
+

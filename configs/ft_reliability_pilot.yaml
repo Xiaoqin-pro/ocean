@@ -1,0 +1,184 @@
+experiment:
+  name: ft_reliability_suim_pilot_v1_2
+  branch: experiment/ft-reliability-pilot
+  output_dir: outputs/ft_reliability_suim_pilot_v1_2
+  seed: 20260725
+
+provenance:
+  uwr_bench_frozen_parent: 8d24fdf
+  aquariskmap_final_failure_commit: 5d18be8
+  protocol_status: preregistered_no_implementation_no_training
+  protocol_version: ft_reliability_v1_2
+  protocol_document: reports/ft_reliability_protocol_v1_2.md
+
+access_control:
+  allowed_source_split_dir: data/suim_processed/splits/aquariskmap_risk_head_v1
+  method_train_csv: data/suim_processed/splits/aquariskmap_risk_head_v1/risk_head_train.csv
+  method_development_csv: data/suim_processed/splits/aquariskmap_risk_head_v1/risk_head_development.csv
+  method_train_count: 936
+  method_development_count: 231
+  frozen_split_audit_path: data/suim_processed/splits/aquariskmap_risk_head_v1/summary.json
+  method_train_csv_sha256: 7CF81D0B822A70414764E71BD596DBF8500B19D3D9667A5F9F066C7AF7656D07
+  method_development_csv_sha256: FF27E7E33B3BE077D44DBE1B2B7F4649ED691CBC8D8C3F0DFD06DC64D35335E6
+  frozen_split_audit_sha256: 89F9114990C6F11B9EB0AB7D676B67E62048B826CF03A6DD0FC19E5A4842023B
+  prohibited_suim_splits:
+    - data/suim_processed/splits/v2_scene_grouped_deduplicated/val.csv
+    - data/suim_processed/splits/v2_scene_grouped_deduplicated/calibration.csv
+    - data/suim_processed/splits/v2_scene_grouped_deduplicated/test.csv
+  prohibited_external_datasets: [UIIS, DUT-USEG, USIS10K]
+  official_suim_test_locked: true
+  official_suim_test_evaluated: false
+  validation_evaluated: false
+  calibration_evaluated: false
+  method_development_evaluated: false
+
+degradations:
+  registry_config: configs/degradation_pilot.yaml
+  family_order: [color, turbidity, lowlight, blur]
+  trajectory: [clean, family_s1, family_s3]
+  family_selector: stable_hash_sample_id_plus_epoch_mod_4
+  cross_family_trajectories_allowed: false
+  prediction_driven_selection_allowed: false
+
+models:
+  shared:
+    image_size: 384
+    num_classes: 8
+    initialization_and_seed_must_match_within_backbone: true
+    checkpoint_selection: final_epoch
+    amp: true
+    loss_ignore_index: 255
+  segformer_b0:
+    source_baseline_config: configs/baseline/segformer_b0_suim_v2_scene.yaml
+    pretrained_model: nvidia/mit-b0
+    optimizer: AdamW
+    learning_rate: 0.00006
+    weight_decay: 0.01
+    epochs: 100
+    base_scene_batch_size: 4
+    effective_base_scene_batch_size: 4
+    gradient_accumulation_steps: 1
+  deeplabv3_mobilenetv3_large:
+    source_baseline_config: configs/baseline/deeplabv3_mobilenetv3_suim_v2_scene.yaml
+    backbone_weights: IMAGENET1K_V2
+    optimizer: AdamW
+    learning_rate: 0.0001
+    weight_decay: 0.0001
+    epochs: 100
+    base_scene_batch_size: 4
+    gradient_accumulation_steps: 1
+  oom_policy:
+    gradient_accumulation_only: true
+    preserve_effective_batch_size: true
+    changing_image_size_allowed: false
+
+failure_transition:
+  reliability_score: top1_minus_top2_logit_gap
+  transition: s1_correct_and_s3_wrong
+  transition_mask_predictions_detached: true
+  loss: mean_softplus_delta_minus_stopgrad_topgap_s1_plus_topgap_s3
+  margin: 0.20
+  weight: 0.10
+  warmup_epochs: 5
+  max_pixels_per_batch: 4096
+  boundary_radius: 3
+  boundary_fraction: 0.50
+  no_transition_loss_value: 0.0
+  log_transition_counts_per_epoch: true
+
+clean_retention:
+  loss: kl_baseline936_clean_to_ft_clean
+  weight: 0.10
+  teacher_detached: true
+  teacher: same_architecture_baseline936_trained_on_method_train_only
+  temperature: 1.0
+  direction: teacher_to_student
+  reduction: mean_over_valid_pixels
+  ignore_index: 255
+  resolution: 384
+  teacher_eval_mode: true
+  teacher_no_grad: true
+  teacher_correct_only: true
+  teacher_checkpoint: outputs/ft_reliability_suim_pilot_v1_2/segformer/formal/A/checkpoints/final.pt
+
+generic_correctness_ranking:
+  score: top1_minus_top2_logit_gap
+  source_view: family_s3_only
+  loss: mean_softplus_delta_minus_topgap_correct_plus_topgap_wrong
+  margin: 0.20
+  weight: 0.10
+  warmup_epochs: 5
+  pairs_per_batch: 4096
+  boundary_fraction: 0.50
+  sampling_seed_formula: seed_plus_100003_times_epoch_plus_batch_index
+  pair_sampling: correct_and_wrong_from_same_s3_batch
+  no_eligible_pair_loss_value: 0.0
+  replacement_when_pool_insufficient: true
+
+loss_schedule:
+  segmentation_loss: mean_of_ce_clean_ce_s1_ce_s3
+  A:
+    epochs_1_to_final: clean_ce
+  B:
+    epochs_1_to_5: shared_degradation_ce_warmup
+    epochs_6_to_final: mean_three_view_ce
+  C:
+    epochs_1_to_5: shared_degradation_ce_warmup
+    epochs_6_to_final: mean_three_view_ce_plus_0.10_L_CR
+  D:
+    epochs_1_to_5: shared_degradation_ce_warmup
+    epochs_6_to_final: mean_three_view_ce_plus_0.10_L_FT
+  E:
+    epochs_1_to_5: shared_degradation_ce_warmup
+    epochs_6_to_final: mean_three_view_ce_plus_0.10_L_FT_plus_0.10_L_retain
+
+memory_safe_optimization:
+  applies_to: [D, E]
+  forward_backward_order:
+    - clean_forward_then_clean_ce_and_retention_then_backward
+    - s1_forward_then_s1_ce_and_detached_topgap_and_correctness_then_backward
+    - s3_forward_then_s3_ce_transition_mask_and_ft_loss_then_backward
+    - optimizer_step_once
+  clean_graph_released_before_s1: true
+  s1_graph_released_before_s3: true
+
+comparisons:
+  variants:
+    A: baseline_936_clean_ce
+    B: degradation_ce
+    C: degradation_ce_plus_generic_correctness_ranking
+    D: degradation_ce_plus_failure_transition
+    E: degradation_ce_plus_failure_transition_plus_clean_retention
+  primary_comparisons: [E_vs_B, E_vs_C]
+
+evaluation_after_freeze_only:
+  split: method_development
+  conditions: [clean, color_s1, color_s2, color_s3, turbidity_s1, turbidity_s2, turbidity_s3, lowlight_s1, lowlight_s2, lowlight_s3, blur_s1, blur_s2, blur_s3]
+  regions: [full, boundary_radius_3, interior]
+  metrics: [miou, nll, ece, brier, eaurc, error_auprc, top10_error_recall]
+  bootstrap: paired_scene_cluster
+  bootstrap_replicates: 1000
+
+progression_gate:
+  e_vs_b:
+    macro_miou_decrease_pp_max: 0.3
+    clean_miou_decrease_pp_max: 0.5
+    full_eaurc_relative_decrease_min: 0.08
+    boundary_eaurc_relative_decrease_min: 0.05
+    error_auprc_improvement_pp_min: 1.5
+  e_vs_c:
+    primary_endpoint: full_eaurc_improvement_C_minus_E
+    bootstrap_replicates: 1000
+    ci95_lower_bound_must_exceed: 0.0
+    error_auprc_direction: non_worse
+  calibration_safety_diagnostics:
+    ece_bins: 15
+    ece_binning: equal_width
+    report: [ece, classwise_ece, nll, brier]
+    ece_absolute_worsening_target_max: 0.01
+    standalone_stop_gate: false
+  pass_rule: all_conditions_required_before_deeplab_replication
+  strong_result:
+    macro_miou_improvement_pp_min: 0.5
+    or_severe_degradation_mean_miou_improvement_pp_min: 1.0
+  failure_rule: permanently_stop_ft_reliability_without_retuning_or_formal_split_access

@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from calibration.temperature_scaling import fit_temperature, fit_temperature_from_batches, scale_logits
-from scripts.evaluate_temperature_scaling import validate_cache_payload
+from scripts.evaluate_temperature_scaling import atomic_csv, atomic_json, validate_cache_payload
 
 
 def test_temperature_scaling_preserves_argmax() -> None:
@@ -50,3 +50,13 @@ def test_cache_integrity_rejects_mismatched_hash_or_duplicate_samples() -> None:
     payload["sample_id"] = ["a", "a"]
     with pytest.raises(ValueError, match="duplicate sample IDs"):
         validate_cache_payload(payload, split="val", condition="clean", checkpoint_sha256="checkpoint", degradation_config_sha256="degradation")
+
+
+def test_atomic_result_writes_publish_complete_files(tmp_path) -> None:
+    csv_path = tmp_path / "metrics.csv"
+    json_path = tmp_path / "metadata.json"
+    atomic_csv(__import__("pandas").DataFrame([{"row": 1}, {"row": 2}]), csv_path)
+    atomic_json({"result_rows": 2}, json_path)
+    assert csv_path.read_text(encoding="utf-8").count("\n") == 3
+    assert __import__("json").loads(json_path.read_text(encoding="utf-8"))["result_rows"] == 2
+    assert not list(tmp_path.glob("*.tmp"))

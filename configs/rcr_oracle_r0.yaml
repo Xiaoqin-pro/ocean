@@ -1,0 +1,71 @@
+experiment:
+  name: rcr_oracle_r0_v1
+  branch: experiment/rcr-oracle-screen
+  parent_commit: 720a511
+  seed: 20260728
+  output_dir: outputs/rcr_oracle_r0
+
+scope:
+  gate: R0_full_image_repairability_oracle
+  training_allowed: false
+  crop_refinement_allowed: false
+  communication_simulation_allowed: false
+  calibration_read_allowed: false
+  validation_read_allowed: false
+  official_suim_test_read_allowed: false
+  external_data_read_allowed: false
+  method_development_read_allowed: true
+
+data:
+  development_csv: data/suim_processed/splits/aquariskmap_risk_head_v1/risk_head_development.csv
+  development_csv_sha256: FF27E7E33B3BE077D44DBE1B2B7F4649ED691CBC8D8C3F0DFD06DC64D35335E6
+  samples: 231
+  image_size: 384
+  batch_size: 4
+  ignore_index: 255
+  geometry: deterministic_resize_only
+  random_crop: false
+  random_flip: false
+
+degradations:
+  registry_config: configs/degradation_pilot.yaml
+  registry_config_sha256: 706A1DA10870C0659CD9CC35D8472F22FC727B2292933FEBD26961BB7666CF93
+  conditions: [clean, color_s1, color_s2, color_s3, turbidity_s1, turbidity_s2, turbidity_s3, lowlight_s1, lowlight_s2, lowlight_s3, blur_s1, blur_s2, blur_s3]
+
+models:
+  segformer:
+    checkpoint: outputs/segformer_b0_suim_v2_scene/checkpoints/best.pt
+    checkpoint_sha256: 62CF10BA021B7E24429477C9C9C4690650EB0945D39E19DA0A8DEB3BB1132A5A
+    config: configs/baseline/segformer_b0_suim_v2_scene.yaml
+    config_sha256: 95C0C4AECACADE9B6D456BD4DB259EAB881D61A9864E883F58F45A557ED4BA26
+  deeplab:
+    checkpoint: outputs/deeplabv3_mobilenetv3_suim_v2_scene/checkpoints/best.pt
+    checkpoint_sha256: 041655E0793D0F5DF792571E2F1FF9322082540971AE1A12709FC960DE7AAF59
+    config: configs/baseline/deeplabv3_mobilenetv3_suim_v2_scene.yaml
+    config_sha256: 3040DC068857F591963EFF168A5C7086BC92EF40249FEC5440C8174ECA8A7E49
+
+candidates:
+  - segformer_to_deeplab
+  - deeplab_to_segformer
+  - segformer_to_ensemble
+  - deeplab_to_ensemble
+ensemble:
+  rule: equal_weight_probability_mean
+  weights: [0.5, 0.5]
+  weight_selection_from_development_allowed: false
+
+metrics:
+  regions: [full, boundary_radius_3, interior]
+  bootstrap: scene_cluster
+  bootstrap_replicates: 1000
+  foreground_classes: [1, 2, 3, 4, 5, 6, 7]
+  oracle_rule: replace_local_only_when_local_wrong_and_remote_correct
+
+gate_r0:
+  repair_rate_min: 0.15
+  oracle_macro_miou_improvement_min: 0.02
+  foreground_macro_miou_improvement_min: 0.0
+  boundary_oracle_macro_miou_improvement_min: 0.0
+  positive_family_count_min: 3
+  scene_bootstrap_ci95_lower_must_exceed: 0.0
+  fail_action: permanently_close_rcr_without_crops_communication_or_new_selector

@@ -1,0 +1,48 @@
+experiment:
+  name: scdi_seg_gate2
+  branch: experiment/scdi-seg
+  seed: 20260811
+  output_dir: outputs/scdi_seg_gate2
+
+data:
+  train_csv: data/suim_processed/splits/aquariskmap_risk_head_v1/risk_head_train.csv
+  development_csv: data/suim_processed/splits/aquariskmap_risk_head_v1/risk_head_development.csv
+  train_images: 936
+  development_images: 231
+  image_size: 384
+  degradation_registry: configs/degradation_pilot.yaml
+  trajectory: [clean, s1, s2, s3]
+
+model:
+  architecture: segformer_b0_scdi
+  pretrained_model: nvidia/mit-b0
+  source_checkpoint: outputs/ft_reliability_suim_pilot_v1_2/segformer/formal/B/checkpoints/final.pt
+  source_variant: B
+  hidden_sizes: [32, 64, 160, 256]
+  rectifier_reduction: 4
+  num_classes: 8
+
+training:
+  epochs: 8
+  batch_size: 4
+  backbone_learning_rate: 0.00001
+  expert_learning_rate: 0.0001
+  weight_decay: 0.01
+  amp: true
+  segmentation_loss: mean_four_view_cross_entropy
+  tangent_weight: 0.02
+  clean_identity_weight: 0.02
+  router_weight: 0.02
+  tangent_minimum_pixels: 4
+  checkpoint_selection: final_epoch
+
+gate:
+  comparator: outputs/dts_seg_gate0/evaluation/condition_metrics.csv
+  comparator_variant: F4
+  primary_min_miou_pp: 0.50
+  alternative_severe_mean_miou_pp_min: 1.00
+  clean_miou_decrease_pp_max: 0.30
+  severe_families_nonnegative_min: 3
+  official_suim_test_locked: true
+  formal_validation_locked: true
+  calibration_locked: true

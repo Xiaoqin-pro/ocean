@@ -1,0 +1,34 @@
+experiment:
+  name: tta_spt_fast
+  branch: experiment/sgre-seg
+  seed: 20260811
+  output_dir: outputs/tta_spt_fast
+
+data:
+  uiis_train_csv: data/uiis_processed/splits/uiis_alpha010_confirmation/train.csv
+  uiis_confirmation_csv: data/uiis_processed/splits/uiis_alpha010_confirmation/confirmation.csv
+  degradation_registry: configs/degradation_pilot.yaml
+  image_size: 256
+  evaluation_image_size: 384
+
+evaluation:
+  conditions: [clean, color_s1, color_s2, color_s3, turbidity_s1, turbidity_s2, turbidity_s3, lowlight_s1, lowlight_s2, lowlight_s3, blur_s1, blur_s2, blur_s3]
+
+model:
+  pretrained_model: nvidia/mit-b0
+  source_checkpoint: outputs/ft_reliability_suim_pilot_v1_2/segformer/formal/B/checkpoints/final.pt
+  hidden_sizes: [32, 64, 160, 256]
+  num_classes: 8
+  rectifier_reduction: 4
+
+training:
+  epochs: 4
+  batch_size: 8
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  amp: true
+  pseudo_threshold: 0.70
+  pseudo_weight: 1.0
+  entropy_weight: 0.02
+  identity_weight: 0.02
+  residual_weight: 0.01

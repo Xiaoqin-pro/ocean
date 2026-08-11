@@ -1,0 +1,36 @@
+experiment:
+  name: anchor_replay_fast
+  branch: experiment/sgre-seg
+  seed: 20260811
+  output_dir: outputs/anchor_replay_fast
+
+data:
+  suim_train_csv: data/suim_processed/splits/aquariskmap_risk_head_v1/risk_head_train.csv
+  uiis_train_csv: data/uiis_processed/splits/uiis_alpha010_confirmation/train.csv
+  image_size: 256
+  degradation_registry: configs/degradation_pilot.yaml
+
+model:
+  pretrained_model: nvidia/mit-b0
+  source_checkpoint: outputs/ft_reliability_suim_pilot_v1_2/segformer/formal/B/checkpoints/final.pt
+  hidden_sizes: [32, 64, 160, 256]
+  num_classes: 8
+  rectifier_reduction: 4
+
+training:
+  epochs: 8
+  batch_size: 8
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  amp: true
+  prototype_weight: 0.05
+  prototype_margin: 0.15
+  prototype_minimum_pixels: 4
+  distillation_weight: 0.10
+  distillation_temperature: 2.0
+  confidence_power: 1.0
+  source_anchor_weight: 0.20
+  source_temperature: 2.0
+  anchor_weight: 0.01
+  clean_identity_weight: 0.02
+

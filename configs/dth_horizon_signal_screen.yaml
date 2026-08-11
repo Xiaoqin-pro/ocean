@@ -1,0 +1,73 @@
+experiment:
+  name: dth_horizon_signal_screen_v1
+  branch: experiment/dth-horizon-screen
+  frozen_parent_commit: 8ccc2d97757b1ba477aed64fa1b79eb4f847abbb
+  seed: 20260728
+  output_dir: outputs/dth_horizon_signal_screen
+
+scope:
+  gate: gate_1_label_signal_audit
+  training_allowed: false
+  head_training_allowed: false
+  method_development_read_allowed: false
+  validation_read_allowed: false
+  calibration_read_allowed: false
+  official_suim_test_read_allowed: false
+  external_data_read_allowed: false
+
+base_model:
+  architecture: segformer_b0
+  role: frozen_degradation_ce_comparator_variant_B
+  checkpoint: outputs/ft_reliability_suim_pilot_v1_2/segformer/formal/B/checkpoints/final.pt
+  checkpoint_sha256: F9C8D08B39ED04295F63006381384DBD987CAC3B65BFF11A7C8D736DE23430F6
+  checkpoint_format: ft_reliability_pilot_v1_2
+  protocol_commit: ft_reliability_v1_2
+  final_epoch: 100
+
+data:
+  allowed_split_dir: data/suim_processed/splits/aquariskmap_risk_head_v1
+  method_train_csv: data/suim_processed/splits/aquariskmap_risk_head_v1/risk_head_train.csv
+  method_train_csv_sha256: 7CF81D0B822A70414764E71BD596DBF8500B19D3D9667A5F9F066C7AF7656D07
+  method_train_samples: 936
+  ignore_index: 255
+  image_size: 384
+  geometry: deterministic_resize_only
+  random_crop: false
+  random_flip: false
+
+degradations:
+  registry_config: configs/degradation_pilot.yaml
+  registry_config_sha256: 706A1DA10870C0659CD9CC35D8472F22FC727B2292933FEBD26961BB7666CF93
+  families: [color, turbidity, lowlight, blur]
+  trajectory_conditions: [clean, family_s1, family_s2, family_s3]
+  coupled_latent_seed: sha256_sample_id_family_dth_horizon_v1
+  shared_spatial_pattern_across_severity: true
+  severity_parameter_monotonicity_required: true
+
+labels:
+  eligible: clean_prediction_correct_and_ground_truth_not_ignore
+  H1: s1_first_wrong
+  H2: s1_correct_s2_first_wrong
+  H3: s1_s2_correct_s3_first_wrong
+  censored: correct_through_s3
+  recovery: any_higher_severity_correct_after_first_failure
+  boundary_radius: 3
+
+screening_criteria:
+  families_required_to_pass: 3
+  eligible_scenes_min: 200
+  event_scenes_min: 100
+  h2_event_scenes_min: 30
+  h3_event_scenes_min: 30
+  max_single_status_rate_max: 0.90
+  recovery_rate_max: 0.30
+  recovery_rate_excess_families_max: 2
+
+reporting:
+  score_bins:
+    msp: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+    normalized_entropy: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+    top_gap: [0.0, 0.5, 1.0, 2.0, 4.0, 8.0, .inf]
+  write_per_scene_rows: true
+  write_class_boundary_region_rows: true
+  output_atomic: true

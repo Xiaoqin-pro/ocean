@@ -1,0 +1,31 @@
+{
+  "config": "configs\\uiis_temperature_scaling.yaml",
+  "config_sha256": "1938E016EF1B4C19CDC6F7BFD3F32C5B969BD56726EDAEF9E8D63683CA42D8A7",
+  "checkpoint": "outputs/segformer_b0_uiis_alpha010_confirmation/checkpoints/last.pt",
+  "checkpoint_sha256": "C2EAD86D324A02AD874C5DBDF88CC5238F9ABC0C9E673A1EE08D5CFE99DB1B52",
+  "degradation_config": "configs/degradation_pilot.yaml",
+  "degradation_config_sha256": "706A1DA10870C0659CD9CC35D8472F22FC727B2292933FEBD26961BB7666CF93",
+  "cache_entries": 26,
+  "cache_manifest_sha256": "DECF7DEB34578229634D757C1E6A8AC8F378E6DE6DDC86D1B3AC355EA37C5E6B",
+  "split_csv_sha256": {
+    "calibration": "DAEE4930B8BCD21B0F25BE8B38C2378B1BEDD016EC4048F268536F1DB8C68DA1",
+    "confirmation": "A6EC919CA841E01B418EA0B6AE00C9B660A3B80EAAF9EC1D460A15AB5B7AD08E"
+  },
+  "result_rows": 104,
+  "methods": [
+    "raw",
+    "clean_global",
+    "pooled",
+    "per_degradation"
+  ],
+  "splits_evaluated": [
+    "calibration",
+    "confirmation"
+  ],
+  "official_test_evaluated": false,
+  "model_retrained": false,
+  "raw_cache_vs_frozen_pilot_max_abs_difference": {},
+  "cache_logits_dtype": "float16",
+  "cache_integrity_verified": true,
+  "segmentation_invariants_verified": true
+}

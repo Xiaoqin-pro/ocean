@@ -1,0 +1,14 @@
+{
+  "config_sha256": "263D1DDFEC741CA01A715DA7D6957C4FE7598D98F73DBD490257A4FCE5818DFB",
+  "checkpoint_sha256": "62CF10BA021B7E24429477C9C9C4690650EB0945D39E19DA0A8DEB3BB1132A5A",
+  "degradation_config_sha256": "706A1DA10870C0659CD9CC35D8472F22FC727B2292933FEBD26961BB7666CF93",
+  "fit_split": "calibration",
+  "evaluation_split": "val",
+  "cluster_unit": "sample_id_with_all_13_conditions",
+  "primary_score": "raw_msp",
+  "oracle_uses_condition_label_for_diagnostic_only": true,
+  "ground_truth_boundary_as_input": false,
+  "official_test_evaluated": false,
+  "model_retrained": false,
+  "rows": 1170
+}
