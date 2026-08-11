@@ -31,6 +31,12 @@
 9. **Mechanism attribution.** A reviewer may attribute the composition gain to
    generic image reconstruction. Response: show the pixel-only composition
    control (+0.486 pp versus full SADR +1.241 pp for the same seed).
+10. **Overclaiming compositionality.** A reviewer may ask whether the method
+    assumes a linear correction law. Response: report the measured hierarchy
+    (order cosine 0.975, binary additivity 0.785, triple closure 0.535), state
+    that direct additive/order/KL/distillation penalties reduce the primary
+    gain to about +0.36 pp, and describe transfer as an emergent,
+    order-stable semantic property rather than an imposed equation.
 
 ## Data-access audit
 

@@ -161,3 +161,57 @@ def semantic_feature_consistency(student: torch.Tensor, teacher: torch.Tensor) -
     teacher_vector = functional.adaptive_avg_pool2d(teacher.float(), 1).flatten(1).detach()
     similarity = functional.cosine_similarity(student_vector, teacher_vector, dim=1)
     return (1.0 - similarity).mean()
+
+
+def semantic_compositionality_loss(
+    composite_delta: torch.Tensor,
+    first_delta: torch.Tensor,
+    second_delta: torch.Tensor,
+) -> torch.Tensor:
+    """Match a composite semantic correction to the sum of two atomic ones.
+
+    ``delta`` is defined in the frozen expert's logit space as the change
+    induced by the trainable front-end relative to the unadapted image.  The
+    atomic target is detached deliberately: the composite view receives the
+    direct gradient while the two atomic corrections provide a stable local
+    reference.  A normalized smooth-L1 term keeps the loss meaningful when
+    correction magnitudes differ across images and avoids the scale sensitivity
+    of an unnormalized logit penalty.
+    """
+    if composite_delta.shape != first_delta.shape or composite_delta.shape != second_delta.shape:
+        raise ValueError("Compositionality deltas must have matching shapes.")
+    if composite_delta.ndim < 2:
+        raise ValueError("Compositionality deltas must have a batch dimension.")
+    target = (first_delta.detach() + second_delta.detach()).float()
+    prediction = composite_delta.float()
+    scale = target.abs().mean(dim=tuple(range(1, target.ndim)), keepdim=True).clamp_min(1e-3)
+    error = functional.smooth_l1_loss(prediction, target, reduction="none")
+    return (error / scale).mean()
+
+
+def semantic_order_consistency_loss(first_delta: torch.Tensor, second_delta: torch.Tensor) -> torch.Tensor:
+    """Match semantic corrections for two application orders symmetrically."""
+    if first_delta.shape != second_delta.shape or first_delta.ndim < 2:
+        raise ValueError("Order-consistency deltas must have matching batched shapes.")
+    first = first_delta.float()
+    second = second_delta.float()
+    first_flat = first.flatten(1)
+    second_flat = second.flatten(1)
+    cosine = 1.0 - functional.cosine_similarity(first_flat, second_flat, dim=1, eps=1e-6)
+    scale = ((first.detach().abs().mean(dim=tuple(range(1, first.ndim)), keepdim=True) + second.detach().abs().mean(dim=tuple(range(1, second.ndim)), keepdim=True)) / 2.0).clamp_min(1e-3)
+    forward = functional.smooth_l1_loss(first, second.detach(), reduction="none") / scale
+    reverse = functional.smooth_l1_loss(second, first.detach(), reduction="none") / scale
+    return cosine.mean() + 0.1 * (forward.mean() + reverse.mean()) / 2.0
+
+
+def semantic_probability_order_loss(first_logits: torch.Tensor, second_logits: torch.Tensor) -> torch.Tensor:
+    """Symmetric KL consistency for the two orders of a composite view."""
+    if first_logits.shape != second_logits.shape or first_logits.ndim < 2:
+        raise ValueError("Order-consistency logits must have matching batched shapes.")
+    first_log_prob = functional.log_softmax(first_logits.float(), dim=1)
+    second_log_prob = functional.log_softmax(second_logits.float(), dim=1)
+    first_prob = first_log_prob.exp().detach()
+    second_prob = second_log_prob.exp().detach()
+    forward = functional.kl_div(first_log_prob, second_prob, reduction="none").sum(dim=1).mean()
+    reverse = functional.kl_div(second_log_prob, first_prob, reduction="none").sum(dim=1).mean()
+    return 0.5 * (forward + reverse)
