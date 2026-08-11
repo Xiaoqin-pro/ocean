@@ -75,6 +75,11 @@ split is reused diagnostically.
 | color + lowlight (both orders) | +1.732 |
 | turbidity + blur (both orders) | +0.821 |
 
+As a mechanism control, the seed-20260811 pixel-only checkpoint reaches only
++0.486 pp on the same eight compositions, versus +1.241 pp for full SADR. The
+gap is especially clear for lowlight/blur, where pixel-only gains are near
+zero. This supports task supervision as the source of compositional transfer.
+
 ## Ablations on the same confirmation split
 
 | variant | change from SADR-8 | mean mIoU | gain |
