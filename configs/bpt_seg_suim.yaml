@@ -1,0 +1,38 @@
+experiment:
+  name: bpt_seg_suim
+  branch: experiment/sgre-seg
+  seed: 20260811
+  output_dir: outputs/bpt_seg_suim
+
+data:
+  train_csv: data/suim_processed/splits/aquariskmap_risk_head_v1/risk_head_train.csv
+  development_csv: data/suim_processed/splits/aquariskmap_risk_head_v1/risk_head_development.csv
+  image_size: 384
+  degradation_registry: configs/degradation_pilot.yaml
+  train_images: 936
+  development_images: 231
+
+model:
+  pretrained_model: nvidia/mit-b0
+  source_checkpoint: outputs/ft_reliability_suim_pilot_v1_2/segformer/formal/B/checkpoints/final.pt
+  hidden_sizes: [32, 64, 160, 256]
+  num_classes: 8
+  rectifier_reduction: 4
+
+training:
+  epochs: 8
+  batch_size: 4
+  backbone_learning_rate: 0.00001
+  expert_learning_rate: 0.0001
+  weight_decay: 0.01
+  amp: true
+  prototype_weight: 0.05
+  prototype_margin: 0.15
+  prototype_minimum_pixels: 4
+  boundary_weight: 0.05
+  clean_identity_weight: 0.02
+  router_weight: 0.02
+  checkpoint_selection: final_epoch
+
+evaluation:
+  official_suim_test_locked: true

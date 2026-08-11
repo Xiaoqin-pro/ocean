@@ -1,0 +1,49 @@
+experiment:
+  name: joint_cb_utd
+  branch: experiment/sgre-seg
+  seed: 20260811
+  output_dir: outputs/joint_cb_utd
+
+data:
+  suim_train_csv: data/suim_processed/splits/aquariskmap_risk_head_v1/risk_head_train.csv
+  uiis_train_csv: data/uiis_processed/splits/uiis_alpha010_confirmation/train.csv
+  suim_test_csv: data/suim_processed/splits/v2_scene_grouped_deduplicated/test.csv
+  uiis_calibration_csv: data/uiis_processed/splits/uiis_alpha010_confirmation/calibration.csv
+  uiis_confirmation_csv: data/uiis_processed/splits/uiis_alpha010_confirmation/confirmation.csv
+  image_size: 384
+  degradation_registry: configs/degradation_pilot.yaml
+  suim_train_images: 936
+  uiis_train_images: 2371
+  suim_test_images: 110
+  uiis_calibration_images: 508
+  uiis_confirmation_images: 511
+
+model:
+  pretrained_model: nvidia/mit-b0
+  source_checkpoint: outputs/ft_reliability_suim_pilot_v1_2/segformer/formal/B/checkpoints/final.pt
+  hidden_sizes: [32, 64, 160, 256]
+  num_classes: 8
+  rectifier_reduction: 4
+
+training:
+  epochs: 8
+  batch_size: 4
+  backbone_learning_rate: 0.00001
+  expert_learning_rate: 0.0001
+  weight_decay: 0.01
+  amp: true
+  prototype_weight: 0.05
+  prototype_margin: 0.15
+  prototype_minimum_pixels: 4
+  distillation_weight: 0.10
+  distillation_temperature: 2.0
+  confidence_power: 1.0
+  class_balance: true
+  clean_identity_weight: 0.02
+  router_weight: 0.02
+  checkpoint_selection: final_epoch
+
+evaluation:
+  conditions: [clean, color_s1, color_s2, color_s3, turbidity_s1, turbidity_s2, turbidity_s3, lowlight_s1, lowlight_s2, lowlight_s3, blur_s1, blur_s2, blur_s3]
+  official_suim_test_locked: true
+  uiis_confirmation_locked: true
