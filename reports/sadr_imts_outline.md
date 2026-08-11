@@ -24,6 +24,8 @@ parameter overhead.
 3. A frozen, preregistered 13-condition robustness protocol with three seeds,
    family/severity analysis, external SUIM cost, conventional GrayWorld
    control, and explicit negative controls for frequency and routing variants.
+   Report the small-sample 95% t interval for the seed gain
+   ([+0.415, +1.078] pp) as a stability indication only.
 
 ## Claims not to make
 

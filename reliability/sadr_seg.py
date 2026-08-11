@@ -126,6 +126,22 @@ def confidence_distillation(student: torch.Tensor, teacher: torch.Tensor) -> tor
     return (value * confidence).mean()
 
 
+def semantic_view_consistency(student: torch.Tensor, batch_size: int) -> torch.Tensor:
+    """Penalize semantic disagreement among the three restored severity views.
+
+    The training loader concatenates s1/s2/s3 in that order.  Matching each
+    view to the detached mean prediction keeps the loss symmetric while
+    avoiding a moving teacher network.
+    """
+    if student.ndim != 4 or batch_size <= 0 or student.shape[0] != 3 * batch_size:
+        raise ValueError("Expected logits for three views concatenated by batch.")
+    probabilities = functional.softmax(student.float(), dim=1).reshape(3, batch_size, student.shape[1], student.shape[2], student.shape[3])
+    target = probabilities.mean(dim=0).detach()
+    target = target.unsqueeze(0).expand_as(probabilities)
+    divergence = functional.kl_div(probabilities.clamp_min(1e-6).log(), target, reduction="none")
+    return divergence.sum(dim=2).mean()
+
+
 def semantic_feature_consistency(student: torch.Tensor, teacher: torch.Tensor) -> torch.Tensor:
     """Match global semantic directions while leaving spatial details learnable."""
     if student.ndim != 4 or teacher.ndim != 4 or student.shape[0] != teacher.shape[0] or student.shape[1] != teacher.shape[1]:

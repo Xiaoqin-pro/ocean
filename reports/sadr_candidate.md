@@ -39,7 +39,9 @@ three turbidity, three low-light, and three blur severities.
 | **SADR-8, seed 20260813** | **0.488595** | **+0.872 pp** |
 
 Across three seeds, the confirmation gain is +0.746 pp on average (sample
-standard deviation 0.109 pp; one-sample t-test against zero, p=0.0105).
+standard deviation 0.133 pp; 95% t interval [0.415, 1.078] pp; one-sample
+t-test against zero, p=0.0105). This is a small-n stability indication, not a
+large-sample significance claim.
 
 The gain is not uniform across degradation families. Averaged over seeds and
 the three severities, color attenuation improves by +1.56 pp, low-light by
@@ -97,6 +99,14 @@ four-epoch screening run and +0.621 pp in a matched eight-epoch run, versus
 +0.607 pp for the ordinary SADR run with the same seed. The +0.014 pp
 difference is not a meaningful new contribution, so the feature term is kept
 as a negative control rather than added to the main method.
+
+A stricter semantic-view consistency term was also screened. It matches the
+frozen expert's probability maps for the three severities of the same
+synthetic degradation family. With the same seed and eight epochs it reached
++0.607 pp on confirmation, versus +0.607 pp for ordinary SADR (difference
+0.0003 pp), and -0.138 pp on SUIM official. It is therefore a matched
+negative control: the gain comes from task-supervised residual adaptation,
+not from adding a generic consistency penalty.
 
 The small UVMulti held-out sanity subset also did not improve: common-class
 mIoU stayed around 0.322 on raw frames and 0.319 on enhanced frames for both
