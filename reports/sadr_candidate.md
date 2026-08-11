@@ -76,6 +76,12 @@ At 384x384 on the experiment laptop GPU, a 30-iteration CUDA-event benchmark
 measured 11.14 ms for UIIS-F4 and 13.53 ms for UIIS-F4+SADR (+21.4% latency).
 It adds one small convolutional image pass before the unchanged segmenter.
 
+Conventional controls on the same confirmation protocol are weaker: GrayWorld
+gives +0.221 pp on UIIS confirmation and -1.931 pp on SUIM official, while
+LAB-CLAHE gives -1.596 pp on confirmation and +0.500 pp on SUIM official.
+These controls are useful precisely because their direction changes by domain;
+they do not provide the consistent multi-condition gain of SADR.
+
 Two more expressive variants were tested without changing the frozen protocol.
 A low/high-frequency split front-end reached only +0.269 pp on confirmation
 and +0.064 pp on SUIM official. A four-expert degradation-family router
