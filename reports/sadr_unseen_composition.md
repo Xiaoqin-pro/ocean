@@ -19,6 +19,16 @@ confirmation gate.
 | 20260813 | +1.401 |
 | **mean** | **+1.302** |
 
+The larger stress-test gain is not contradictory to the smaller primary gain.
+The primary table averages clean, mild, and single degradations, where the
+frozen expert is already stronger (baseline mean mIoU 0.4799). The composition
+stress test contains only compounded degradations, where the baseline mean is
+0.4209 and the three SADR seeds average 0.4339. Thus the absolute gain rises
+from +0.746 to +1.302 pp (roughly 1.55% to 3.09% relative to the corresponding
+baseline) because the stress test exposes a larger error headroom. In the
+paper, the 13-condition result should remain the primary claim and the
+composition result should be reported as a harder, post-freeze stress test.
+
 Every seed-by-composition result is positive. Averaged over the three seeds,
 the two application orders give:
 

@@ -28,7 +28,9 @@ parameter overhead.
    ([+0.415, +1.078] pp) as a stability indication only.
 4. A post-freeze compositional stress test: eight unseen ordered combinations
    of registered degradations are positive for all three seeds, with mean gain
-   +1.302 pp. Label it diagnostic because it reuses the confirmation images.
+   +1.302 pp. Label it diagnostic because it reuses the confirmation images;
+   explain that its lower baseline (0.4209 versus 0.4799 in the primary table)
+   creates more error headroom rather than implying a contradictory benchmark.
 
 ## Claims not to make
 
