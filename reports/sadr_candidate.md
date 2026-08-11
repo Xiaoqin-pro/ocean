@@ -55,6 +55,26 @@ standard deviation 0.034 pp). This is a small source-domain cost, not the
 catastrophic forgetting seen in the joint-domain and routing routes, but it
 must be reported rather than hidden.
 
+## Unseen-composition stress test
+
+After the main checkpoint was frozen, we ran a diagnostic stress test on the
+same 511 confirmation images but with eight novel compositions that were not
+present in the training registry: color/turbidity, lowlight/blur,
+color/lowlight, and turbidity/blur, each in both application orders. No
+parameters or thresholds were changed for this test. The three SADR seeds
+improved by +1.241, +1.264, and +1.401 pp respectively (mean +1.302 pp); all
+16 seed-by-composition results were positive. This is evidence for
+compositional extrapolation of the residual adapter, not a replacement for
+the preregistered single-degradation confirmation result because the image
+split is reused diagnostically.
+
+| unseen composition family | mean gain over three seeds (pp) |
+|---|---:|
+| color + turbidity (both orders) | +1.830 |
+| lowlight + blur (both orders) | +0.825 |
+| color + lowlight (both orders) | +1.732 |
+| turbidity + blur (both orders) | +0.821 |
+
 ## Ablations on the same confirmation split
 
 | variant | change from SADR-8 | mean mIoU | gain |

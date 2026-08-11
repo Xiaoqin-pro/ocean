@@ -26,6 +26,9 @@ parameter overhead.
    control, and explicit negative controls for frequency and routing variants.
    Report the small-sample 95% t interval for the seed gain
    ([+0.415, +1.078] pp) as a stability indication only.
+4. A post-freeze compositional stress test: eight unseen ordered combinations
+   of registered degradations are positive for all three seeds, with mean gain
+   +1.302 pp. Label it diagnostic because it reuses the confirmation images.
 
 ## Claims not to make
 
@@ -64,7 +67,8 @@ report the mean -0.178 pp and do not hide it.
 4. **Protocol:** describe the 2,371-image train role, 511-image confirmation
    role, 110-image SUIM external role, and 13 deterministic conditions. State
    that confirmation/test data never influence training or thresholds.
-5. **Results:** main table, three-seed error bars, per-family plot, and
+5. **Results:** main table, three-seed error bars, per-family plot, unseen
+   composition stress-test table, and
    qualitative grid. Use the condition-gain plot in
    `outputs/sadr_long/condition_gain_plot.png` and qualitative grid in
    `outputs/sadr_long/qualitative_grid.png`.

@@ -11,6 +11,7 @@
 | UVMulti validates real-world generalization | Available subset has only a small held-out frame sample and no improvement | Unsafe. Use only as a negative sanity check. |
 | SADR is lightweight | 11,012 trainable vs 3,716,200 frozen parameters; +21.4% measured latency at 384x384 | Safe if both parameter and latency costs are reported. |
 | Extra modules are necessary | Frequency, routing, and matched feature consistency did not exceed ordinary SADR | Unsafe. The evidence favors the simple semantic residual adapter. |
+| SADR transfers to unseen degradation compositions | Eight ordered compositions on the same confirmation images; all 3 seeds positive, mean +1.302 pp | Safe as a post-freeze compositional stress test; do not call it an independent split or real-world generalization. |
 
 ## Minimum defensible abstract sentence
 
