@@ -34,14 +34,19 @@ three turbidity, three low-light, and three blur severities.
 |---|---:|---:|
 | UIIS-F4 | 0.479872 | — |
 | SADR-4 | 0.483846 | +0.397 pp |
-| **SADR-8** | **0.485939** | **+0.607 pp** |
+| **SADR-8, seed 20260811** | **0.485939** | **+0.607 pp** |
+| **SADR-8, seed 20260812** | **0.487471** | **+0.760 pp** |
+
+Across the two seeds, the confirmation gain is +0.684 pp on average (sample
+standard deviation 0.108 pp).
 
 SADR-8 improves clean, color, turbidity, and low-light conditions.  Blur-s3
 remains a weakness (0.3948 versus 0.4001 for UIIS-F4).
 
-On the untouched SUIM official test, UIIS-F4 is 0.413955 and SADR-8 is
-0.412657 (−0.130 pp).  This is a small source-domain cost, not the catastrophic
-forgetting seen in the joint-domain and routing routes.
+On the untouched SUIM official test, UIIS-F4 is 0.413955.  SADR-8 is 0.412657
+(−0.130 pp) for seed 20260811 and 0.411987 (−0.197 pp) for seed 20260812.
+This is a small source-domain cost, not the catastrophic forgetting seen in
+the joint-domain and routing routes.
 
 ## Ablations on the same confirmation split
 
@@ -70,3 +75,7 @@ least one conventional enhancement baseline.
 
 The failed routes remain recorded separately and should be used as negative
 evidence rather than omitted.
+
+The calibration-fitted quality gate was deliberately rejected: it reduced the
+confirmation gain to +0.243 pp.  The final candidate therefore uses no
+confirmation-derived gate.
