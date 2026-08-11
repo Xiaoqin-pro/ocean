@@ -124,3 +124,13 @@ def confidence_distillation(student: torch.Tensor, teacher: torch.Tensor) -> tor
     confidence = teacher_prob.max(1, keepdim=True).values
     value = functional.kl_div(student_log, teacher_prob, reduction="none").sum(1, keepdim=True)
     return (value * confidence).mean()
+
+
+def semantic_feature_consistency(student: torch.Tensor, teacher: torch.Tensor) -> torch.Tensor:
+    """Match global semantic directions while leaving spatial details learnable."""
+    if student.ndim != 4 or teacher.ndim != 4 or student.shape[0] != teacher.shape[0] or student.shape[1] != teacher.shape[1]:
+        raise ValueError("Expected matching [N,C,H,W] feature tensors.")
+    student_vector = functional.adaptive_avg_pool2d(student.float(), 1).flatten(1)
+    teacher_vector = functional.adaptive_avg_pool2d(teacher.float(), 1).flatten(1).detach()
+    similarity = functional.cosine_similarity(student_vector, teacher_vector, dim=1)
+    return (1.0 - similarity).mean()
