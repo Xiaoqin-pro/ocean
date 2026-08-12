@@ -2,57 +2,28 @@
 
 ## Working title
 
-**SADR: Emergent Partial Semantic Composition for Robust Underwater
-Segmentation with a Frozen Expert**
+**SADR: Parameter-Efficient Task-Supervised Residual Adaptation for Robust
+Underwater Segmentation with a Frozen Expert**
 
 ## One-sentence thesis
 
-Rather than retraining an underwater segmenter or optimizing enhancement for
-human visual quality, learn a zero-initialized residual image adapter using the
-frozen segmenter's semantic loss and clean/degraded public training pairs; the
-resulting semantic correction exhibits severity-dependent, family-selective
-composition structure, with only 0.296% trainable parameter overhead.
+We study whether a pretrained underwater segmentation expert can acquire
+degradation robustness without updating the expert itself. SADR learns a
+zero-initialized task-supervised residual input adapter, obtaining measurable
+robustness improvement with 0.296% trainable parameters, while exhibiting
+structured but non-exclusive transfer to unseen degradation compositions.
 
-## Contributions to claim
+## Three contributions
 
-1. A task-aware residual adapter that is safe at initialization: the frozen
-   UIIS-F4 expert is unchanged and the last adapter layer is zero initialized.
-2. A paired semantic-restoration objective that combines segmentation loss,
-   clean identity, reconstruction, confidence-weighted distillation, and
-   residual regularization. The ablation shows task loss, not pixel recovery,
-   is the decisive term.
-3. A frozen, preregistered 13-condition robustness protocol with three seeds,
-   family/severity analysis, external SUIM cost, conventional GrayWorld
-   control, and explicit negative controls for frequency and routing variants.
-   Report the small-sample 95% t interval for the seed gain
-   ([+0.415, +1.078] pp) as a stability indication only.
-4. A post-freeze compositional stress test: eight unseen ordered combinations
-   of registered degradations are positive for all three seeds, with mean gain
-   +1.302 pp. Label it diagnostic because it reuses the confirmation images;
-   explain that its lower baseline (0.4209 versus 0.4799 in the primary table)
-   creates more error headroom rather than implying a contradictory benchmark.
-5. A mechanism analysis over all six family pairs and matched severities,
-   including operator commutativity and shuffled-image null controls. Correct
-   same-image additivity beats the null in 54/54 screening cases, while order
-   and additivity degrade at high severity. Directly imposing the relations
-   harms the primary task, so the transfer is treated as an emergent,
-   family-selective property rather than a claimed linear law.
-6. A parameter-efficiency reference that prevents interpreting the SADR gain
-   against only a frozen baseline: with the same train-only budget, SADR's
-   0.296% adapter gives +0.607 pp on confirmation, versus +0.192 pp for
-   decoder-head-only and +0.312 pp for last-block-only fine-tuning. Full
-   fine-tuning remains stronger (+2.281 pp confirmation, +3.123 pp SUIM), so
-   this is a low-update robustness trade-off, not a claim of matching full FT.
-7. A matched composition-transfer control showing that the stress-test gain
-   is not exclusive to SADR: at severity 2, the four-pair confirmation audit
-   gives +1.141 pp for SADR, +0.881 pp for head-only, +1.693 pp for
-   last-block-only, and +5.807 pp for full FT; the calibration audit gives
-   -0.270, +1.021, +1.557, and +3.690 pp. This narrows the mechanism claim to
-   constrained, measurable transfer under a 0.296% frozen-expert update.
-8. A parameter-matched rank-2 q/v LoRA control: 8,192 trainable parameters
-   (0.220%) yield only +0.226 pp on confirmation, versus SADR's +0.607 pp.
-   This supports the narrower claim that task-supervised input-side residual
-   placement matters beyond parameter count alone.
+1. A zero-initialized, task-supervised input residual adapter that improves a
+   frozen UIIS-F4 expert without updating the expert itself.
+2. A locked three-seed robustness result and parameter-efficiency comparison:
+   SADR averages +0.746 pp with 0.296% trainable parameters; rank-2 LoRA and
+   partial FT are weaker, while full FT is a clearly stronger accuracy upper
+   reference.
+3. A transparent mechanism and boundary audit: composition transfer is
+   structured, severity-dependent, family-selective, and non-exclusive, with
+   explicit SUIM, blur, calibration, latency, and UVMulti limitations.
 
 ## Claims not to make
 
@@ -95,7 +66,7 @@ report the mean -0.178 pp and do not hide it.
    role, 110-image SUIM external role, and 13 deterministic conditions. State
    that confirmation/test data never influence training or thresholds.
 5. **Results:** main table, three-seed error bars, per-family plot, unseen
-   composition stress-test table, semantic-correction compositionality
+   composition-transfer comparison table, semantic-correction
    hierarchy with all-family/null controls, held-out calibration audit, and
    qualitative grid. Use the condition-gain plot in
    `outputs/sadr_long/condition_gain_plot.png` and qualitative grid in
@@ -104,12 +75,9 @@ report the mean -0.178 pp and do not hide it.
    `reports/parameter_efficiency_result.md` and
    `outputs/parameter_efficiency/parameter_pareto.png`.
    Add the full/partial-FT composition table from the same report.
-6. **Ablation:** pixel-only, no reconstruction, no distillation, frequency
-   split, feature consistency, routed experts, GrayWorld, and LAB-CLAHE.
-   Emphasize that task loss is necessary but extra architectural branches and
-   ordinary contrast enhancement did not explain the gain. Include additive,
-   logit-order, probability-KL, and composite-distillation controls as failed
-   attempts to impose compositionality.
+6. **Ablation:** pixel-only, no reconstruction, no distillation, rank-2 LoRA,
+   GrayWorld, LAB-CLAHE, and head/last/full FT. Put frequency, routing,
+   basis, selectors, and explicit composition penalties in the appendix.
 7. **Limitations:** source-domain cost, blur-s3 weakness, lowlight/blur
    failure in the held-out audit, partial UVMulti, confirmation-scene reuse in
    the stress test, the 21.4% measured latency overhead despite tiny parameter
@@ -128,6 +96,8 @@ report the mean -0.178 pp and do not hide it.
 - Make the parameter-efficiency comparison explicit: partial fine-tuning is
   a matched reference, while full fine-tuning is an upper-accuracy reference;
   neither is to be hidden behind the SADR result.
+- Treat this outline, the freeze manifest, and manuscript v0.1 as writing
+  artifacts only; do not reopen training or method search during drafting.
 
 ## References to verify during writing
 
