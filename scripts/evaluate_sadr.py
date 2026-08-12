@@ -14,13 +14,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from degradations.registry import load_conditions  # noqa: E402
-from reliability.sadr_seg import FrequencySADRFrontEnd, RoutedSADRFrontEnd, SADRFrontEnd  # noqa: E402
+from reliability.sadr_seg import CompositionalBasisSADRFrontEnd, FrequencySADRFrontEnd, RoutedSADRFrontEnd, SADRFrontEnd  # noqa: E402
 from scripts.evaluate_dts_seg_gate0 import evaluate_condition  # noqa: E402
 from scripts.train_sadr import FORMAT, build_model  # noqa: E402
 
 
 class SADRModel(torch.nn.Module):
-    def __init__(self, base: torch.nn.Module, front: SADRFrontEnd) -> None:
+    def __init__(self, base: torch.nn.Module, front: torch.nn.Module) -> None:
         super().__init__(); self.base = base; self.front = front
 
     def forward(self, pixel_values: torch.Tensor):

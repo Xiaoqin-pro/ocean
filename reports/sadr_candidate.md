@@ -109,6 +109,14 @@ audited. It reduced confirmation mean mIoU to 0.484370 (-0.157 pp versus
 always-on SADR), despite reducing the SUIM source-domain cost to about -0.070
 pp. The primary loss means no gate is retained in the candidate.
 
+The compositional-basis architectural control was also rejected. After fixing
+an initial coefficient-gradient symmetry bug with near-zero primitive
+initialization, the four-basis model reached only +0.375 pp on confirmation,
++0.853 pp on the reused-scene composition stress test, and -0.064 pp on SUIM.
+Its four coefficients moved together with degradation strength rather than
+forming independent family primitives. The basis result is retained as
+negative architectural evidence, not added to SADR.
+
 As a held-out scene audit, the eight ordered compositions were also evaluated
 on all 508 calibration images. This split was not used by SADR optimization or
 the primary confirmation threshold, but a previously rejected quality-gate

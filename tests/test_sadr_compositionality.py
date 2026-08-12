@@ -3,6 +3,7 @@ import torch
 
 from scripts.analyze_sadr_composition_controls import pixel_order_metrics, relation_metrics
 from scripts.evaluate_sadr_self_gate import selector_mask
+from reliability.sadr_seg import CompositionalBasisSADRFrontEnd
 from reliability.sadr_seg import (
     semantic_compositionality_loss,
     semantic_order_consistency_loss,
@@ -56,3 +57,14 @@ def test_self_gate_selector_is_prediction_only_and_shape_preserving():
     assert mask.shape == (2,)
     assert mask.dtype == torch.bool
     assert mask.all()
+
+
+def test_compositional_basis_is_near_identity_without_coefficient_symmetry():
+    front = CompositionalBasisSADRFrontEnd(bases=4)
+    image = torch.rand(2, 3, 16, 16)
+    restored, residual, coefficients = front(image)
+    assert restored.shape == image.shape
+    assert residual.shape == image.shape
+    assert coefficients.shape == (2, 4)
+    assert residual.abs().max().item() < 0.01
+    assert not torch.allclose(coefficients[:, 0], coefficients[:, -1])

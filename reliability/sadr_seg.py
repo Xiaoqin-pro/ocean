@@ -39,6 +39,52 @@ class SADRFrontEnd(nn.Module):
         return image + residual, residual
 
 
+class CompositionalBasisSADRFrontEnd(nn.Module):
+    """Shared residual basis with image-conditioned primitive activation.
+
+    The basis is deliberately small and zero initialized at its output. A
+    global coefficient vector can activate several primitives simultaneously,
+    so a compound degradation is not forced through a single family route.
+    Coefficients are an analysis signal only; no degradation labels are used.
+    """
+
+    def __init__(self, channels: int = 3, hidden: int = 24, bases: int = 4) -> None:
+        super().__init__()
+        self.bases = int(bases)
+        self.encoder = nn.Sequential(
+            nn.Conv2d(channels, hidden, 3, padding=1),
+            nn.GELU(),
+            nn.Conv2d(hidden, hidden, 3, padding=1),
+            nn.GELU(),
+        )
+        self.primitive_head = nn.Conv2d(hidden, channels * self.bases, 1)
+        self.coefficient_head = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(channels, self.bases, 1),
+            nn.Flatten(),
+        )
+        # A strictly zero primitive would also zero the coefficient gradient.
+        # Tiny output weights preserve near-identity initialization while
+        # allowing the image-conditioned mixture to learn.
+        nn.init.normal_(self.primitive_head.weight, mean=0.0, std=1e-3)
+        nn.init.zeros_(self.primitive_head.bias)
+        nn.init.zeros_(self.coefficient_head[1].weight)
+        # Keep the residual exactly zero at initialization, while preventing
+        # all primitive coefficients from following the same gradient path.
+        nn.init.constant_(self.coefficient_head[1].bias, 0.0)
+        with torch.no_grad():
+            self.coefficient_head[1].bias.copy_(torch.linspace(-0.15, 0.15, self.bases))
+        self.scale = nn.Parameter(torch.tensor(0.10))
+
+    def forward(self, image: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        latent = self.encoder(image)
+        primitive = self.primitive_head(latent).reshape(image.shape[0], self.bases, image.shape[1], image.shape[2], image.shape[3])
+        coefficients = self.coefficient_head(image).sigmoid()
+        residual = (primitive * coefficients[:, :, None, None, None]).sum(dim=1)
+        residual = torch.tanh(residual) * self.scale.clamp(0.01, 0.50)
+        return image + residual, residual, coefficients
+
+
 class FrequencySADRFrontEnd(nn.Module):
     """Task-aware rectifier with separate low/high-frequency residual paths."""
 
