@@ -7,7 +7,8 @@
    parameter-efficient robustness adapter and cite TFUIE/STSC/HSRUIE.
 2. **Synthetic-to-real gap.** The locked 13-condition test is generated from
    deterministic transformations. Response: report the negative UVMulti sanity
-   result and the SUIM source-domain cost; do not call it real-world validation.
+   result, the five-video heterogeneity audit, and the SUIM source-domain
+   cost; do not call it real-world validation.
 3. **Magnitude.** +0.746 pp is modest. Response: show three seeds, family and
    severity error bars, +0.296% parameter overhead, and the pixel-only,
    frequency, routing, feature, GrayWorld, and CLAHE controls.

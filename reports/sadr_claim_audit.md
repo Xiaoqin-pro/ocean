@@ -8,7 +8,7 @@
 | SADR is better than generic enhancement | GrayWorld +0.221 pp and CLAHE -1.596 pp on confirmation | Safe against these two controls only; do not claim all enhancement methods. |
 | SADR is the first task-driven underwater enhancement method | TFUIE, STSC, and HSRUIE predate this work | Unsafe. Claim frozen-expert parameter efficiency and robustness protocol instead. |
 | SADR handles all underwater degradations | Blur-s3 mean is about -0.43 pp | Unsafe. State color/low-light gains and blur limitation. |
-| UVMulti validates real-world generalization | Available subset has only a small held-out frame sample and no improvement | Unsafe. Use only as a negative sanity check. |
+| UVMulti validates real-world generalization | Official val/video108: raw mean +0.018 pp, enhanced -0.018 pp across three seeds; train-video audit is highly heterogeneous | Unsafe. Use val as a negative external check and train videos only as exploratory heterogeneity evidence. |
 | SADR is lightweight | 11,012 trainable vs 3,716,200 frozen parameters; +21.4% measured latency at 384x384 | Safe if both parameter and latency costs are reported. |
 | Extra modules are necessary | Frequency, routing, and matched feature consistency did not exceed ordinary SADR | Unsafe. The evidence favors the simple semantic residual adapter. |
 | SADR transfers to unseen degradation compositions | Confirmation stress test: eight ordered compositions on reused scenes, mean +1.302 pp; calibration audit: +0.278 pp, 15/24 positive | Safe only as a post-freeze diagnostic with family-selective transfer; do not call it an independent or universal generalization result. |
