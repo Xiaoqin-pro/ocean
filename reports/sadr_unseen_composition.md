@@ -29,7 +29,7 @@ baseline) because the stress test exposes a larger error headroom. In the
 paper, the 13-condition result should remain the primary claim and the
 composition result should be reported as a harder, post-freeze stress test.
 
-Every seed-by-composition result is positive. Averaged over the three seeds,
+Every confirmation seed-by-composition result is positive. Averaged over the three seeds,
 the two application orders give:
 
 | composition family | mean gain (pp) |
@@ -56,8 +56,12 @@ than generic image reconstruction, drives the compositional transfer.
 ## Interpretation boundary
 
 This supports the narrower statement that the task-supervised residual
-adapter transfers to unseen *compositions* of the registered image operators.
-It does not establish real-world UVMulti generalization, because the UVMulti
-sanity subset did not improve, and it does not provide a new independent image
-split. In the paper it should be presented as a stress test after the primary
-single-degradation table.
+adapter transfers to selected unseen *compositions* of the registered image
+operators on the reused confirmation scenes. A full 508-image calibration
+audit averaged only +0.278 pp across the same eight ordered compositions (15/24
+positive), with lowlight/blur averaging -0.590 pp. It does not establish
+universal composition generalization or real-world UVMulti generalization,
+because the UVMulti sanity subset did not improve, and the confirmation stress
+test does not provide a new independent image split. In the paper it should be
+presented as a stress test after the primary single-degradation table, with the
+calibration audit and failed family reported explicitly.

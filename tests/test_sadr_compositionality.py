@@ -2,6 +2,7 @@ import pytest
 import torch
 
 from scripts.analyze_sadr_composition_controls import pixel_order_metrics, relation_metrics
+from scripts.evaluate_sadr_self_gate import selector_mask
 from reliability.sadr_seg import (
     semantic_compositionality_loss,
     semantic_order_consistency_loss,
@@ -45,3 +46,13 @@ def test_pixel_order_metrics_is_zero_for_identical_images():
     assert metrics["cosine"] > 0.999
     assert metrics["mean_abs_difference"] == pytest.approx(0.0)
     assert metrics["relative_l1"] == pytest.approx(0.0)
+
+
+def test_self_gate_selector_is_prediction_only_and_shape_preserving():
+    raw = torch.zeros(2, 3, 2, 2)
+    adapted = raw.clone()
+    adapted[:, 1] = 2.0
+    mask = selector_mask(raw, adapted, "confidence")
+    assert mask.shape == (2,)
+    assert mask.dtype == torch.bool
+    assert mask.all()

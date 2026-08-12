@@ -95,6 +95,16 @@ the mild-severity pairs). The supported statement is therefore
 severity-dependent, family-selective partial compositionality, not universal
 order invariance or a linear correction law.
 
+We also aligned the semantic controls with the actual composite mIoU gains on
+the same 128-image screen. Across the three seeds, additivity cosine correlated
+only weakly with mean ordered-composite gain (Pearson r = 0.327, 0.193, and
+0.320); order cosine was essentially uncorrelated (r = 0.039, 0.038, and
+-0.045). The shuffled-add null was not a performance predictor either (r =
+0.446, 0.338, and 0.439). Thus these geometries are evidence of structured
+correction, but not a sufficient rule for deciding which family pair will
+benefit. This negative alignment result rules out the overly simple story that
+"more compositional" automatically means "larger mIoU gain."
+
 ## Held-out scene audit
 
 We additionally ran the eight ordered stress-test compositions on all 508 UIIS
@@ -129,6 +139,19 @@ the primary-task drop.  The result is useful scientifically: the observed
 semantic structure is an emergent property of task-supervised correction, not
 a relation that can be safely enforced with a generic penalty.  We therefore
 do **not** include any of these regularizers in the claimed method.
+
+## Unfitted self-gating control (negative evidence)
+
+To test whether the residual could be selected safely without labels, we also
+implemented four prediction-only per-image selectors: lower output entropy,
+higher top-1 margin, higher mean confidence, and their entropy/margin
+conjunction. No gate parameters were fitted. On the 508-image calibration
+audit, the best entropy selector reached 0.428872 mean mIoU versus 0.426343
+for always-on SADR (+0.254 pp over SADR). On the locked 511-image confirmation
+diagnostic, the same selector reached 0.484328 versus 0.485939 for SADR
+(-0.161 pp). Margin and confidence behaved similarly. This split reversal
+rejects prediction confidence as a deployment gate and is retained as a
+negative control; the claimed method remains the fixed always-on adapter.
 
 ## Safe paper contribution
 
