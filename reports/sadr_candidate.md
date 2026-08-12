@@ -233,7 +233,6 @@ least one conventional enhancement baseline beyond GrayWorld.
 
 The failed routes remain recorded separately and should be used as negative
 evidence rather than omitted.
-
 ## Parameter-efficiency reference
 
 To calibrate the meaning of the 0.607 pp seed-20260811 gain, we trained two
