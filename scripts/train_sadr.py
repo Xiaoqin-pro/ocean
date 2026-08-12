@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from reliability.sadr_seg import FrequencySADRFrontEnd, RoutedSADRFrontEnd, SADRFrontEnd, confidence_distillation, gradient_reconstruction_loss, segmentation_loss, semantic_compositionality_loss, semantic_feature_consistency, semantic_order_consistency_loss, semantic_probability_order_loss, semantic_view_consistency  # noqa: E402
+from reliability.sadr_seg import CompositionalBasisSADRFrontEnd, FrequencySADRFrontEnd, RoutedSADRFrontEnd, SADRFrontEnd, confidence_distillation, gradient_reconstruction_loss, segmentation_loss, semantic_compositionality_loss, semantic_feature_consistency, semantic_order_consistency_loss, semantic_probability_order_loss, semantic_view_consistency  # noqa: E402
 from scripts.train_dts_seg_gate0 import atomic_torch_save, sha256  # noqa: E402
 from scripts.train_uiis_scdi_replication import UIISTrajectoryDataset, build_models as build_uiis_f4  # noqa: E402
 
@@ -40,7 +40,9 @@ def semantic_prediction_with_grad(base: torch.nn.Module, front: torch.nn.Module,
 def build_model(config: dict, device: torch.device) -> tuple[torch.nn.Module, torch.nn.Module]:
     uiis_config = yaml.safe_load((ROOT / str(config["data"]["uiis_config"])).read_text(encoding="utf-8"))
     base = build_uiis_f4(uiis_config, "F4", device)
-    if bool(config["training"].get("routed", False)):
+    if bool(config["training"].get("basis", False)):
+        front = CompositionalBasisSADRFrontEnd(bases=int(config["training"].get("basis_count", 4))).to(device)
+    elif bool(config["training"].get("routed", False)):
         front = RoutedSADRFrontEnd().to(device)
     elif bool(config["training"].get("frequency", False)):
         front = FrequencySADRFrontEnd().to(device)

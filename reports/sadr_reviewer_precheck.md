@@ -57,6 +57,10 @@
 15. **Learned gate overfitting.** A reviewer may propose fitting a selector on
     train labels. Response: the train-only gate still loses -0.157 pp on
     confirmation; report it as a rejected control.
+16. **Basis factorization.** A reviewer may ask why the method does not use
+    explicit residual primitives. Response: the four-basis control underperforms
+    SADR and its coefficients co-vary with degradation strength; retain it as
+    negative evidence.
 
 ## Data-access audit
 

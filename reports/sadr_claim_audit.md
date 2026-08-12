@@ -18,6 +18,7 @@
 | Semantic cosine predicts composite mIoU gain | Cross-relation additivity correlations are only 0.193--0.327; order correlations are -0.045--0.039 | Unsafe. Treat geometry as mechanism evidence, not a sufficient family-selection rule. |
 | Unfitted confidence gate safely selects SADR | Entropy selector +0.254 pp over SADR on calibration but -0.161 pp on confirmation | Unsafe. Prediction confidence is a negative control, not a deployable gate. |
 | Train-only learned gate rescues source-domain cost safely | Confirmation 0.484370 vs always-on SADR 0.485939 (-0.157 pp); SUIM cost about -0.070 pp | Unsafe. Smaller external cost does not justify primary robustness loss. |
+| Shared residual basis explains composition transfer | Learnable four-basis control: +0.375 pp confirmation, +0.853 pp reused-scene compositions; coefficients co-vary with strength | Unsafe. Factorization is a negative architectural control, not the claimed mechanism. |
 | Compositionality regularization is the source of the gain | Additive, logit-order, probability-KL, and composite-distillation controls all fall to about +0.36 pp | Unsafe. Keep these as negative controls; the reported transfer is emergent from task-supervised SADR. |
 
 ## Minimum defensible abstract sentence
