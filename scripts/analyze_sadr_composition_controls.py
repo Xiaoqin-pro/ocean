@@ -37,12 +37,27 @@ def compose_degradations(registry: dict[str, object], names: tuple[str, ...]):
     return apply
 
 
-def correction(base: torch.nn.Module, front: torch.nn.Module, pixels: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+def correction(base: torch.nn.Module, front: torch.nn.Module, pixels: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.float16):
         raw = base(pixel_values=pixels).logits.float()
         restored, residual = front(pixels)
         corrected = base(pixel_values=restored).logits.float()
-    return corrected - raw, residual.float()
+    return corrected - raw, residual.float(), raw, corrected
+
+
+def update_confusion(target: torch.Tensor, logits: torch.Tensor, confusion: torch.Tensor) -> None:
+    prediction = torch.nn.functional.interpolate(logits.float(), size=target.shape[-2:], mode="bilinear", align_corners=False).argmax(1)
+    valid = target.ne(255)
+    indices = target[valid] * 8 + prediction[valid]
+    confusion += torch.bincount(indices, minlength=64).reshape(8, 8)
+
+
+def confusion_miou(confusion: torch.Tensor) -> float:
+    matrix = confusion.cpu().numpy().astype(np.float64)
+    diagonal = np.diag(matrix)
+    denominator = matrix.sum(0) + matrix.sum(1) - diagonal
+    valid = denominator > 0
+    return float(np.divide(diagonal, denominator, out=np.zeros_like(diagonal), where=valid)[valid].mean())
 
 
 def relation_metrics(left: torch.Tensor, right: torch.Tensor) -> dict[str, float]:
@@ -124,11 +139,16 @@ def main() -> None:
         }
         iterators = {key: iter(loader) for key, loader in loaders.items()}
         accum = {key: [] for key in ("add", "order", "same_a", "same_b", "shuffled_add", "pixel_order")}
+        raw_ab_confusion = torch.zeros(8, 8, dtype=torch.int64, device=device)
+        sadr_ab_confusion = torch.zeros(8, 8, dtype=torch.int64, device=device)
+        raw_ba_confusion = torch.zeros(8, 8, dtype=torch.int64, device=device)
+        sadr_ba_confusion = torch.zeros(8, 8, dtype=torch.int64, device=device)
         seen = 0
         while seen < args.max_images:
             batches = {key: next(iterator) for key, iterator in iterators.items()}
             take = min(8, args.max_images - seen)
             pixels = {key: batches[key]["pixel_values"][:take].to(device, non_blocking=True) for key in batches}
+            targets = {key: batches[key]["labels"][:take].to(device, non_blocking=True) for key in batches}
             corrections = {key: correction(base, front, value) for key, value in pixels.items()}
             delta_a = corrections["A"][0]
             delta_b = corrections["B"][0]
@@ -140,12 +160,16 @@ def main() -> None:
             accum["same_b"].append(relation_metrics(delta_ab, delta_b))
             accum["shuffled_add"].append(relation_metrics(delta_ab, delta_a + shuffled_b))
             accum["pixel_order"].append(pixel_order_metrics(pixels["AB"], pixels["BA"]))
+            update_confusion(targets["AB"], corrections["AB"][2], raw_ab_confusion)
+            update_confusion(targets["AB"], corrections["AB"][3], sadr_ab_confusion)
+            update_confusion(targets["BA"], corrections["BA"][2], raw_ba_confusion)
+            update_confusion(targets["BA"], corrections["BA"][3], sadr_ba_confusion)
             seen += take
         summary = {}
         for key, values in accum.items():
             metric_names = tuple(values[0].keys())
             summary[key] = {metric: float(np.mean([row[metric] for row in values])) for metric in metric_names}
-        rows.append({"relation": label, "images": seen, "metrics": summary})
+        rows.append({"relation": label, "images": seen, "metrics": summary, "miou": {"raw_ab": confusion_miou(raw_ab_confusion), "sadr_ab": confusion_miou(sadr_ab_confusion), "gain_ab_pp": 100.0 * (confusion_miou(sadr_ab_confusion) - confusion_miou(raw_ab_confusion)), "raw_ba": confusion_miou(raw_ba_confusion), "sadr_ba": confusion_miou(sadr_ba_confusion), "gain_ba_pp": 100.0 * (confusion_miou(sadr_ba_confusion) - confusion_miou(raw_ba_confusion))}})
         print(json.dumps(rows[-1], sort_keys=True), flush=True)
     payload = {
         "split": args.split,

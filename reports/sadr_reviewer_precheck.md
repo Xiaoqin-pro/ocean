@@ -45,6 +45,14 @@
     0.995/0.877 to 0.859/0.367, direct additive/order/KL/distillation penalties
     reduce the primary gain to about +0.36 pp, and describe transfer as an
     emergent, partial semantic property rather than an imposed equation.
+13. **Mechanism sufficiency.** A reviewer may ask whether cosine similarity
+    predicts which composition improves. Response: report the alignment audit;
+    additivity/gain correlations are only 0.193--0.327 and order/gain is near
+    zero, so geometry is presented as evidence of structure, not a selector.
+14. **Unfitted gate instability.** A reviewer may ask why not select SADR only
+    when its output is more confident. Response: the entropy selector is
+    positive on calibration (+0.254 pp over SADR) but negative on confirmation
+    (-0.161 pp); retain it as a transparent negative control.
 
 ## Data-access audit
 

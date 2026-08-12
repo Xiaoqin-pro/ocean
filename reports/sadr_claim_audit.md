@@ -15,6 +15,8 @@
 | SADR corrections are exactly additive | All-family screen: add cosine falls 0.877/0.583/0.367 from severity 1/2/3; correct-add beats shuffled null in 54/54 cases | Unsafe. Claim severity-dependent, family-selective partial compositionality, not a linear law. |
 | SADR order stability is universal | Order cosine is 0.995/0.952/0.859 for matched severity 1/2/3, with family outliers | Unsafe. State that order consistency is strongest at mild severity and degrades with severity. |
 | Held-out scenes establish robust composition generalization | Calibration audit mean +0.278 pp; lowlight/blur is -0.590 pp across orders | Unsafe. Call it a held-out audit and report the failed family explicitly. |
+| Semantic cosine predicts composite mIoU gain | Cross-relation additivity correlations are only 0.193--0.327; order correlations are -0.045--0.039 | Unsafe. Treat geometry as mechanism evidence, not a sufficient family-selection rule. |
+| Unfitted confidence gate safely selects SADR | Entropy selector +0.254 pp over SADR on calibration but -0.161 pp on confirmation | Unsafe. Prediction confidence is a negative control, not a deployable gate. |
 | Compositionality regularization is the source of the gain | Additive, logit-order, probability-KL, and composite-distillation controls all fall to about +0.36 pp | Unsafe. Keep these as negative controls; the reported transfer is emergent from task-supervised SADR. |
 
 ## Minimum defensible abstract sentence

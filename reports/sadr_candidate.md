@@ -90,6 +90,20 @@ the operator-commutativity control is reported alongside the semantic result.
 These measurements support a severity-dependent, family-selective partial
 compositionality claim rather than universal order stability.
 
+An alignment audit paired each relation's semantic geometry with its actual
+ordered-composite mIoU gain on the same 128-image screen. Additivity cosine had
+only weak cross-relation correlations with gain (r = 0.327, 0.193, 0.320 for
+the three seeds), while order cosine was essentially uncorrelated (r = 0.039,
+0.038, -0.045). The shuffled-add null was not a reliable gain predictor
+either. The geometry is therefore mechanistic evidence, not a sufficient
+selection rule for predicting which family pair benefits.
+
+An unfitted self-gating control also failed to provide a deployable rescue:
+the best entropy-based selector improved the calibration audit by +0.254 pp
+over always-on SADR, but fell -0.161 pp below SADR on confirmation. Margin and
+confidence selectors showed the same split reversal. The final method remains
+always-on SADR; the self-gate is recorded as negative evidence.
+
 As a held-out scene audit, the eight ordered compositions were also evaluated
 on all 508 calibration images. This split was not used by SADR optimization or
 the primary confirmation threshold, but a previously rejected quality-gate

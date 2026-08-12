@@ -90,7 +90,8 @@ report the mean -0.178 pp and do not hide it.
 7. **Limitations:** source-domain cost, blur-s3 weakness, lowlight/blur
    failure in the held-out audit, partial UVMulti, confirmation-scene reuse in
    the stress test, and the 21.4% measured latency overhead despite tiny
-   parameter overhead.
+   parameter overhead. Add the unfitted confidence self-gate as a negative
+   control: it reverses sign between calibration and confirmation.
 
 ## Reviewer-risk checklist
 
