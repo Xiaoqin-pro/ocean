@@ -43,6 +43,16 @@ composition structure, with only 0.296% trainable parameter overhead.
    decoder-head-only and +0.312 pp for last-block-only fine-tuning. Full
    fine-tuning remains stronger (+2.281 pp confirmation, +3.123 pp SUIM), so
    this is a low-update robustness trade-off, not a claim of matching full FT.
+7. A matched composition-transfer control showing that the stress-test gain
+   is not exclusive to SADR: at severity 2, the four-pair confirmation audit
+   gives +1.141 pp for SADR, +0.881 pp for head-only, +1.693 pp for
+   last-block-only, and +5.807 pp for full FT; the calibration audit gives
+   -0.270, +1.021, +1.557, and +3.690 pp. This narrows the mechanism claim to
+   constrained, measurable transfer under a 0.296% frozen-expert update.
+8. A parameter-matched rank-2 q/v LoRA control: 8,192 trainable parameters
+   (0.220%) yield only +0.226 pp on confirmation, versus SADR's +0.607 pp.
+   This supports the narrower claim that task-supervised input-side residual
+   placement matters beyond parameter count alone.
 
 ## Claims not to make
 
@@ -93,6 +103,7 @@ report the mean -0.178 pp and do not hide it.
    Add the parameter-efficiency table and Pareto figure from
    `reports/parameter_efficiency_result.md` and
    `outputs/parameter_efficiency/parameter_pareto.png`.
+   Add the full/partial-FT composition table from the same report.
 6. **Ablation:** pixel-only, no reconstruction, no distillation, frequency
    split, feature consistency, routed experts, GrayWorld, and LAB-CLAHE.
    Emphasize that task loss is necessary but extra architectural branches and

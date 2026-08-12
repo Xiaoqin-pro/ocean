@@ -18,6 +18,7 @@ from scripts.evaluate_dts_seg_gate0 import evaluate_condition  # noqa: E402
 from scripts.evaluate_sadr import SADRModel  # noqa: E402
 from scripts.train_sadr import build_model as build_sadr_model  # noqa: E402
 from scripts.train_uiis_scdi_replication import build_models as build_uiis_model  # noqa: E402
+from scripts.lora_utils import replace_lora_modules  # noqa: E402
 
 
 def validate_split(path: Path, expected: int, role: str) -> None:
@@ -52,6 +53,14 @@ def load_models(uiis_config: dict, sadr_config: dict, device: torch.device) -> d
             device,
             "parameter_efficiency_v1",
         )
+    lora_model = build_uiis_model(uiis_config, "F4", device)
+    replace_lora_modules(lora_model, rank=2, alpha=2.0)
+    partial["lora"] = load_uiis_checkpoint(
+        lora_model,
+        ROOT / "outputs/parameter_efficiency/formal/lora/checkpoints/final.pt",
+        device,
+        "parameter_efficiency_v1",
+    )
     base, front = build_sadr_model(sadr_config, device)
     payload = torch.load(ROOT / "outputs/sadr_long/formal/checkpoints/final.pt", map_location=device, weights_only=False)
     if payload.get("checkpoint_format") != "sadr_v1" or payload.get("variant") != "SADR" or bool(payload.get("smoke", True)):
@@ -59,7 +68,7 @@ def load_models(uiis_config: dict, sadr_config: dict, device: torch.device) -> d
     if any(bool(payload.get(key, True)) for key in ("confirmation_evaluated", "official_suim_test_evaluated")):
         raise ValueError("SADR checkpoint records prohibited evaluation access")
     front.load_state_dict(payload["model_state_dict"])
-    return {"frozen": source, "sadr": SADRModel(base.eval(), front.eval()).eval(), "head": partial["head"], "last_block": partial["last_block"], "full": full}
+    return {"frozen": source, "sadr": SADRModel(base.eval(), front.eval()).eval(), "head": partial["head"], "last_block": partial["last_block"], "lora": partial["lora"], "full": full}
 
 
 def main() -> None:

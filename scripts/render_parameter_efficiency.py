@@ -12,10 +12,10 @@ ROOT = Path(__file__).resolve().parents[1]
 def main() -> None:
     confirmation = json.loads((ROOT / "outputs/parameter_efficiency/confirmation_evaluation/summary.json").read_text(encoding="utf-8"))
     suim = json.loads((ROOT / "outputs/parameter_efficiency/suim_official_evaluation/summary.json").read_text(encoding="utf-8"))
-    variants = ["frozen", "sadr", "head", "last_block", "full"]
-    trainable = {"frozen": 0, "sadr": 11012, "head": 396808, "last_block": 800000, "full": 3716200}
-    labels = {"frozen": "Frozen F4", "sadr": "SADR", "head": "Head-only", "last_block": "Last block", "full": "Full FT"}
-    colors = {"frozen": "#777777", "sadr": "#0072B2", "head": "#D55E00", "last_block": "#CC79A7", "full": "#009E73"}
+    variants = ["frozen", "sadr", "lora", "head", "last_block", "full"]
+    trainable = {"frozen": 0, "sadr": 11012, "lora": 8192, "head": 396808, "last_block": 800000, "full": 3716200}
+    labels = {"frozen": "Frozen F4", "sadr": "SADR", "lora": "Rank-2 LoRA", "head": "Head-only", "last_block": "Last block", "full": "Full FT"}
+    colors = {"frozen": "#777777", "sadr": "#0072B2", "lora": "#E69F00", "head": "#D55E00", "last_block": "#CC79A7", "full": "#009E73"}
     x = [100.0 * trainable[name] / 3716200 for name in variants]
     y_confirmation = [confirmation["gain_vs_frozen_pp"][name] for name in variants]
     y_suim = [suim["gain_vs_frozen_pp"][name] for name in variants]

@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from scripts.train_uiis_scdi_replication import UIISTrajectoryDataset, build_models  # noqa: E402
+from scripts.lora_utils import lora_trainable_parameters, replace_lora_modules  # noqa: E402
 
 FORMAT = "parameter_efficiency_v1"
 
@@ -67,9 +68,10 @@ def configure_trainable(model: torch.nn.Module, scope: str) -> tuple[list[torch.
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--scope", choices=("head", "last_block", "full"), required=True)
+    parser.add_argument("--scope", choices=("head", "last_block", "full", "lora"), required=True)
     parser.add_argument("--config", type=Path, default=ROOT / "configs/parameter_efficiency.yaml")
     parser.add_argument("--smoke-batches", type=int, default=0)
+    parser.add_argument("--lora-rank", type=int, default=2)
     args = parser.parse_args()
     if args.smoke_batches < 0:
         raise ValueError("smoke-batches must be non-negative")
@@ -85,7 +87,17 @@ def main() -> None:
     dataset = UIISTrajectoryDataset(ROOT / str(data["train_csv"]), ROOT / str(data["degradation_registry"]), int(data["image_size"]))
     loader = DataLoader(dataset, batch_size=int(training["batch_size"]), shuffle=True, num_workers=0, pin_memory=True, generator=torch.Generator().manual_seed(seed))
     model = build_models(uiis_config, "F4", device)
-    parameters, trainable_names = configure_trainable(model, args.scope)
+    if args.scope == "lora":
+        for parameter in model.parameters():
+            parameter.requires_grad_(False)
+        replaced = replace_lora_modules(model, rank=args.lora_rank, alpha=float(args.lora_rank))
+        parameters = lora_trainable_parameters(model)
+        trainable_names = [name for name, parameter in model.named_parameters() if parameter.requires_grad]
+        if len(parameters) == 0:
+            raise RuntimeError("No LoRA parameters selected")
+        print(json.dumps({"lora_modules": replaced, "trainable_parameters": sum(item.numel() for item in parameters)}), flush=True)
+    else:
+        parameters, trainable_names = configure_trainable(model, args.scope)
     total_parameters = sum(parameter.numel() for parameter in model.parameters())
     trainable_parameters = sum(parameter.numel() for parameter in parameters)
     optimizer = torch.optim.AdamW(parameters, lr=float(training["learning_rate"]), weight_decay=float(training["weight_decay"]))
@@ -125,6 +137,7 @@ def main() -> None:
             "smoke": bool(args.smoke_batches), "confirmation_evaluated": False,
             "official_suim_test_evaluated": False, "total_parameters": total_parameters,
             "trainable_parameters": trainable_parameters, "trainable_parameter_names": trainable_names,
+            "lora_rank": int(args.lora_rank) if args.scope == "lora" else None,
         }
         atomic_save(payload, output / "checkpoints/last.pt")
     if not args.smoke_batches:

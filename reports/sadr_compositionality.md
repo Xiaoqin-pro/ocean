@@ -162,15 +162,18 @@ as well; no learned or confidence-based gate is part of the method.
 
 ## Safe paper contribution
 
-The defensible contribution is a mechanism-level finding rather than a claim
-of exact linear composition:
+The matched parameter-efficiency control changes the scope of the mechanism
+claim. Full and partial fine-tuning also transfer to ordered compositions,
+and full FT is stronger. The defensible contribution is therefore a
+constrained-adaptation finding rather than a SADR-exclusive mechanism or a
+claim of exact linear composition:
 
 > A zero-initialized, task-supervised residual front-end before a frozen
-> underwater segmentation expert can learn severity-dependent, family-selective
-> semantic corrections whose same-image composition is more structured than a
-> shuffled null; selected unseen ordered compositions transfer positively,
-> whereas pixel-only correction and direct compositionality penalties do not
-> reproduce the same behavior.
+> underwater segmentation expert can retain measurable, family-selective
+> transfer to selected unseen ordered compositions while updating 0.296% of
+> the expert; the transfer is weaker or absent on some held-out families and
+> is not exclusive to this front-end, since partial and full fine-tuning also
+> transfer.
 
 The paper must call this a post-freeze compositional stress test, report the
 same-scene and held-out-audit limitations, retain the negative regularizer

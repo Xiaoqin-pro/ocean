@@ -50,6 +50,8 @@
     0.995/0.877 to 0.859/0.367, direct additive/order/KL/distillation penalties
     reduce the primary gain to about +0.36 pp, and describe transfer as an
     emergent, partial semantic property rather than an imposed equation.
+    The matched full/partial-FT composition audit must also be reported:
+    transfer is not exclusive to SADR, and full FT is stronger.
 13. **Mechanism sufficiency.** A reviewer may ask whether cosine similarity
     predicts which composition improves. Response: report the alignment audit;
     additivity/gain correlations are only 0.193--0.327 and order/gain is near

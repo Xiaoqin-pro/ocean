@@ -209,18 +209,25 @@ order-consistent for mild matched severities but degrade with severity, and
 the correct same-image additive relation beats a shuffled null in all 54
 screening cases. The confirmation stress test improves eight reused-scene
 compositions by +1.302 pp, while the calibration audit is only +0.278 pp on
-average. This gives the
-paper a specific, falsifiable question about when task-supervised correction
-fields transfer, rather than a universal compositionality claim or only a
-parameter-count claim.
+average. The matched parameter-efficiency control changes the scope of this
+claim: composition transfer is not exclusive to SADR. The four-pair
+severity-2 diagnostic averages +1.141 pp for SADR, +0.881 pp for head-only,
++1.693 pp for last-block-only, +0.667 pp for rank-2 LoRA, and +5.807 pp for
+full FT on confirmation. On the 508-image calibration audit the
+corresponding gains are -0.270, +1.021, +1.557, and +3.690 pp for SADR,
+head-only, last-block-only, and full FT. The safe claim is therefore measurable,
+family-selective transfer with a 0.296% frozen-expert update budget, not a
+SADR-specific compositional mechanism or universal composition
+generalization.
 
 Direct additive, order-consistency, probability-KL, and unlabeled composite
 distillation penalties all reduced the primary confirmation gain to about
 +0.36 pp in matched seed-1 screens. They are retained as negative evidence,
-not folded into SADR. The safe method claim is therefore the emergent,
-severity-dependent and family-selective semantic correction of the frozen-
-expert adapter, accompanied by the compositional stress test and its
-operator/null controls; it is not an exact linear-composition law.
+not folded into SADR. The safe method claim is therefore constrained,
+task-supervised adaptation with severity-dependent and family-selective
+semantic correction structure, accompanied by the compositional stress test
+and its operator/null controls; it is not an exact linear-composition law or
+a SADR-exclusive transfer law.
 
 The contribution should still not be framed as the first task-driven
 underwater enhancement method. Prior work already uses semantic or
@@ -235,23 +242,25 @@ The failed routes remain recorded separately and should be used as negative
 evidence rather than omitted.
 ## Parameter-efficiency reference
 
-To calibrate the meaning of the 0.607 pp seed-20260811 gain, we trained two
-partial fine-tuning controls from the same UIIS-F4 source checkpoint and
-reused the already completed full-F4 run. All three controls used the same
-2,371-image train split, four-view objective, 384-pixel resolution, batch
-size, optimizer, and eight-epoch budget. On the full 13-condition
-confirmation role, the results were: frozen F4 0.479872; SADR (11,012
-trainable parameters, 0.296% of the expert) 0.485939 (+0.607 pp); decoder
-head-only (396,808 parameters, 10.676%) 0.481789 (+0.192 pp); last-block-only
-(800,000 parameters, 21.527%) 0.482990 (+0.312 pp); and full fine-tuning
-(3,716,200 parameters) 0.502678 (+2.281 pp).
+To calibrate the meaning of the 0.607 pp seed-20260811 gain, we trained
+partial fine-tuning and low-rank controls from the same UIIS-F4 source
+checkpoint and reused the already completed full-F4 run. All trainable
+baselines share the 2,371-image train split, four-view exposure, eight-epoch
+budget, source checkpoint, and locked evaluation; SADR retains its fixed
+256/batch-8 optimizer configuration, while FT and LoRA controls share the
+384/batch-4 fine-tuning configuration. On the full 13-condition confirmation
+role, the results were: frozen F4 0.479872; SADR (11,012 trainable
+parameters, 0.296% of the expert) 0.485939 (+0.607 pp); rank-2 q/v LoRA
+(8,192, 0.220%) 0.482136 (+0.226 pp); decoder head-only (396,808, 10.676%)
+0.481789 (+0.192 pp); last-block-only (800,000, 21.527%) 0.482990 (+0.312
+pp); and full fine-tuning (3,716,200 parameters) 0.502678 (+2.281 pp).
 
 The official SUIM role gives a different ordering: SADR changes -0.130 pp,
 head-only +0.381 pp, last-block-only +0.558 pp, and full fine-tuning +3.123
 pp. Therefore the safe claim is not that SADR replaces full fine-tuning. It
 is that the semantic residual adapter is unusually effective relative to the
-two tested partial-FT budgets on the target robustness protocol, while full
-FT remains the higher-accuracy, higher-update reference. This parameter
-efficiency result is supporting evidence for the method's deployment case;
-the paper's main novelty remains the emergent, severity-dependent semantic
-compositional transfer documented above.
+two tested partial-FT budgets and the matched LoRA control on the target
+robustness protocol, while full FT remains the higher-accuracy, higher-update
+reference. This parameter-efficiency result is supporting evidence for the
+method's deployment case; it does not imply SADR-specific composition
+transfer or universal superiority.
