@@ -153,6 +153,13 @@ diagnostic, the same selector reached 0.484328 versus 0.485939 for SADR
 rejects prediction confidence as a deployment gate and is retained as a
 negative control; the claimed method remains the fixed always-on adapter.
 
+For completeness, a label-fitted quality gate trained only on the 2,371-image
+UIIS train split was also audited. It reduced confirmation mean mIoU from
+0.485939 for always-on SADR to 0.484370 (-0.157 pp). Its SUIM mean was 0.413257,
+which is a smaller source-domain cost than SADR but does not compensate for
+the primary robustness loss. This train-only selector is therefore rejected
+as well; no learned or confidence-based gate is part of the method.
+
 ## Safe paper contribution
 
 The defensible contribution is a mechanism-level finding rather than a claim
