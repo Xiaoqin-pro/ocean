@@ -20,6 +20,9 @@
 | Train-only learned gate rescues source-domain cost safely | Confirmation 0.484370 vs always-on SADR 0.485939 (-0.157 pp); SUIM cost about -0.070 pp | Unsafe. Smaller external cost does not justify primary robustness loss. |
 | Shared residual basis explains composition transfer | Learnable four-basis control: +0.375 pp confirmation, +0.853 pp reused-scene compositions; coefficients co-vary with strength | Unsafe. Factorization is a negative architectural control, not the claimed mechanism. |
 | Compositionality regularization is the source of the gain | Additive, logit-order, probability-KL, and composite-distillation controls all fall to about +0.36 pp | Unsafe. Keep these as negative controls; the reported transfer is emergent from task-supervised SADR. |
+| SADR matches full fine-tuning | Full FT gains +2.281 pp on UIIS confirmation and +3.123 pp on SUIM, versus SADR +0.607 pp and -0.130 pp in the matched seed-1 comparison | Unsafe. State that SADR is parameter-efficient and outperforms the tested partial-FT baselines on confirmation, while full FT remains stronger. |
+| More trainable parameters monotonically improve confirmation robustness | Head-only +0.192 pp and last-block-only +0.312 pp are both below SADR +0.607 pp, while full FT reaches +2.281 pp | Unsafe as a monotonic claim. Use the Pareto table as a controlled reference, not a universal scaling law. |
+| SADR improves external SUIM transfer | SADR changes -0.130 pp, while head-only, last-block-only, and full FT change +0.381, +0.558, and +3.123 pp | Unsafe. Report the source-domain cost and distinguish it from the confirmation robustness result. |
 
 ## Minimum defensible abstract sentence
 
