@@ -54,6 +54,9 @@
     when its output is more confident. Response: the entropy selector is
     positive on calibration (+0.254 pp over SADR) but negative on confirmation
     (-0.161 pp); retain it as a transparent negative control.
+15. **Learned gate overfitting.** A reviewer may propose fitting a selector on
+    train labels. Response: the train-only gate still loses -0.157 pp on
+    confirmation; report it as a rejected control.
 
 ## Data-access audit
 

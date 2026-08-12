@@ -104,6 +104,11 @@ over always-on SADR, but fell -0.161 pp below SADR on confirmation. Margin and
 confidence selectors showed the same split reversal. The final method remains
 always-on SADR; the self-gate is recorded as negative evidence.
 
+A label-fitted gate trained only on the 2,371-image UIIS train split was also
+audited. It reduced confirmation mean mIoU to 0.484370 (-0.157 pp versus
+always-on SADR), despite reducing the SUIM source-domain cost to about -0.070
+pp. The primary loss means no gate is retained in the candidate.
+
 As a held-out scene audit, the eight ordered compositions were also evaluated
 on all 508 calibration images. This split was not used by SADR optimization or
 the primary confirmation threshold, but a previously rejected quality-gate

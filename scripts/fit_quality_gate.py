@@ -38,9 +38,13 @@ def per_image_ce(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__); parser.add_argument("--config", type=Path, default=ROOT / "configs/sadr_fast.yaml"); args = parser.parse_args(); config = yaml.safe_load(args.config.resolve().read_text(encoding="utf-8")); data = config["data"]
-    csv_path = ROOT / "data/uiis_processed/splits/uiis_alpha010_confirmation/calibration.csv"; frame = pd.read_csv(csv_path)
-    if len(frame) != 508: raise PermissionError("Quality-gate fitting accepts only the frozen 508-image calibration split.")
+    parser = argparse.ArgumentParser(description=__doc__); parser.add_argument("--config", type=Path, default=ROOT / "configs/sadr_fast.yaml"); parser.add_argument("--fit-split", choices=("train", "calibration"), default="calibration"); parser.add_argument("--output-dir", type=Path, default=None); args = parser.parse_args(); config = yaml.safe_load(args.config.resolve().read_text(encoding="utf-8")); data = config["data"]
+    if args.fit_split == "train":
+        csv_path = ROOT / str(data["train_csv"]); expected = 2371
+    else:
+        csv_path = ROOT / "data/uiis_processed/splits/uiis_alpha010_confirmation/calibration.csv"; expected = 508
+    frame = pd.read_csv(csv_path)
+    if len(frame) != expected: raise PermissionError(f"Quality-gate fitting accepts only the frozen {args.fit_split} split with {expected} images.")
     if not torch.cuda.is_available(): raise RuntimeError("CUDA is required.")
     device = torch.device("cuda"); base, front = build_model(config, device); payload = torch.load(ROOT / str(config["experiment"]["output_dir"]) / "formal/checkpoints/final.pt", map_location=device, weights_only=False); front.load_state_dict(payload["model_state_dict"]); base.eval(); front.eval(); conditions = load_conditions(ROOT / str(data["degradation_registry"]))
     features: list[np.ndarray] = []; targets: list[np.ndarray] = []; deltas: list[np.ndarray] = []
@@ -54,7 +58,7 @@ def main() -> None:
             features.extend(quality_features(pixels).float().cpu().numpy()); deltas.extend(delta.float().cpu().numpy()); targets.extend((delta > 0.0).long().cpu().numpy()); del pixels, labels, base_logits, restored, sadr_logits
         print(f"fit/{condition.name}: samples={len(features)}", flush=True)
     x = np.asarray(features, dtype=np.float32); y = np.asarray(targets, dtype=np.int64); d = np.asarray(deltas, dtype=np.float32); scaler = StandardScaler().fit(x); clf = LogisticRegression(C=1.0, class_weight="balanced", max_iter=1000, random_state=0).fit(scaler.transform(x), y); probability = clf.predict_proba(scaler.transform(x))[:, 1]; selected_loss = np.where(probability >= 0.5, d * 0.0, d * 0.0)
-    output = ROOT / str(config["experiment"]["output_dir"]) / "quality_gate"; output.mkdir(parents=True, exist_ok=True); gate = {"format": "quality_gate_v1", "feature_mean": scaler.mean_.tolist(), "feature_scale": scaler.scale_.tolist(), "coef": clf.coef_[0].tolist(), "intercept": float(clf.intercept_[0]), "calibration_images": 508, "conditions": len(conditions), "positive_rate": float(y.mean()), "calibration_logloss_delta_mean": float(d.mean()), "calibration_accuracy": float((clf.predict(scaler.transform(x)) == y).mean())}; (output / "gate.json").write_text(json.dumps(gate, indent=2) + "\n", encoding="utf-8"); np.savez(output / "calibration_gate_data.npz", features=x, target=y, delta=d, probability=probability); print(json.dumps(gate, indent=2), flush=True)
+    output = (args.output_dir.resolve() if args.output_dir is not None else ROOT / str(config["experiment"]["output_dir"]) / f"quality_gate_{args.fit_split}"); output.mkdir(parents=True, exist_ok=True); gate = {"format": "quality_gate_v1", "feature_mean": scaler.mean_.tolist(), "feature_scale": scaler.scale_.tolist(), "coef": clf.coef_[0].tolist(), "intercept": float(clf.intercept_[0]), "fit_split": args.fit_split, "fit_images": expected, "conditions": len(conditions), "positive_rate": float(y.mean()), "fit_logloss_delta_mean": float(d.mean()), "fit_accuracy": float((clf.predict(scaler.transform(x)) == y).mean())}; (output / "gate.json").write_text(json.dumps(gate, indent=2) + "\n", encoding="utf-8"); np.savez(output / "fit_gate_data.npz", features=x, target=y, delta=d, probability=probability); print(json.dumps(gate, indent=2), flush=True)
 
 
 if __name__ == "__main__": main()

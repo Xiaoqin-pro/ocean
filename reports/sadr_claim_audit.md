@@ -17,6 +17,7 @@
 | Held-out scenes establish robust composition generalization | Calibration audit mean +0.278 pp; lowlight/blur is -0.590 pp across orders | Unsafe. Call it a held-out audit and report the failed family explicitly. |
 | Semantic cosine predicts composite mIoU gain | Cross-relation additivity correlations are only 0.193--0.327; order correlations are -0.045--0.039 | Unsafe. Treat geometry as mechanism evidence, not a sufficient family-selection rule. |
 | Unfitted confidence gate safely selects SADR | Entropy selector +0.254 pp over SADR on calibration but -0.161 pp on confirmation | Unsafe. Prediction confidence is a negative control, not a deployable gate. |
+| Train-only learned gate rescues source-domain cost safely | Confirmation 0.484370 vs always-on SADR 0.485939 (-0.157 pp); SUIM cost about -0.070 pp | Unsafe. Smaller external cost does not justify primary robustness loss. |
 | Compositionality regularization is the source of the gain | Additive, logit-order, probability-KL, and composite-distillation controls all fall to about +0.36 pp | Unsafe. Keep these as negative controls; the reported transfer is emergent from task-supervised SADR. |
 
 ## Minimum defensible abstract sentence
