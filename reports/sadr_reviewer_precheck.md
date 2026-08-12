@@ -12,6 +12,10 @@
 3. **Magnitude.** +0.746 pp is modest. Response: show three seeds, family and
    severity error bars, +0.296% parameter overhead, and the pixel-only,
    frequency, routing, feature, GrayWorld, and CLAHE controls.
+   Also include the matched partial/full fine-tuning table: SADR is above
+   head-only and last-block-only on confirmation, but full fine-tuning is
+   stronger. This supports a parameter-efficiency trade-off, not a claim of
+   matching full FT.
 4. **Source-domain regression.** SUIM drops by -0.178 pp on average. Response:
    state it in the abstract/results and frame SADR as a robustness adapter, not
    a universally better segmenter.

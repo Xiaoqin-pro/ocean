@@ -37,6 +37,12 @@ composition structure, with only 0.296% trainable parameter overhead.
    and additivity degrade at high severity. Directly imposing the relations
    harms the primary task, so the transfer is treated as an emergent,
    family-selective property rather than a claimed linear law.
+6. A parameter-efficiency reference that prevents interpreting the SADR gain
+   against only a frozen baseline: with the same train-only budget, SADR's
+   0.296% adapter gives +0.607 pp on confirmation, versus +0.192 pp for
+   decoder-head-only and +0.312 pp for last-block-only fine-tuning. Full
+   fine-tuning remains stronger (+2.281 pp confirmation, +3.123 pp SUIM), so
+   this is a low-update robustness trade-off, not a claim of matching full FT.
 
 ## Claims not to make
 
@@ -48,6 +54,8 @@ composition structure, with only 0.296% trainable parameter overhead.
 - Do not claim universal blur recovery: blur-s3 is a known weakness.
 - Do not report the +0.746 pp mean as a percentage; it is +0.00746 absolute
   mIoU, or +0.746 percentage points.
+- Do not say SADR replaces full fine-tuning or improves SUIM: the matched
+  full-FT and SUIM results show the opposite.
 
 ## Main table to reproduce
 
@@ -82,6 +90,9 @@ report the mean -0.178 pp and do not hide it.
    qualitative grid. Use the condition-gain plot in
    `outputs/sadr_long/condition_gain_plot.png` and qualitative grid in
    `outputs/sadr_long/qualitative_grid.png`.
+   Add the parameter-efficiency table and Pareto figure from
+   `reports/parameter_efficiency_result.md` and
+   `outputs/parameter_efficiency/parameter_pareto.png`.
 6. **Ablation:** pixel-only, no reconstruction, no distillation, frequency
    split, feature consistency, routed experts, GrayWorld, and LAB-CLAHE.
    Emphasize that task loss is necessary but extra architectural branches and
@@ -103,6 +114,9 @@ report the mean -0.178 pp and do not hide it.
 - Include both GrayWorld and LAB-CLAHE as non-learning controls.
 - Keep confirmation/test access hashes and split counts in the appendix.
 - Explain why three seeds are a stability check, not a population-level claim.
+- Make the parameter-efficiency comparison explicit: partial fine-tuning is
+  a matched reference, while full fine-tuning is an upper-accuracy reference;
+  neither is to be hidden behind the SADR result.
 
 ## References to verify during writing
 
