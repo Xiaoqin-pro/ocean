@@ -55,12 +55,20 @@ def evaluate_callable(model: torch.nn.Module, csv_path: Path, image_degradation,
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=ROOT / "configs/sadr_long.yaml")
-    parser.add_argument("--output", type=Path, default=ROOT / "outputs/sadr_long/unseen_compositions.json")
+    parser.add_argument("--split", choices=("confirmation", "calibration"), default="confirmation")
+    parser.add_argument("--allow-calibration", action="store_true", help="Explicitly unlock the held-out calibration composite audit.")
+    parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
     config = yaml.safe_load(args.config.resolve().read_text(encoding="utf-8")); data = config["data"]
-    csv_path = ROOT / str(data["confirmation_csv"])
-    if csv_path.name != "confirmation.csv" or len(pd.read_csv(csv_path)) != 511:
-        raise PermissionError("Unseen diagnostic accepts only the frozen 511-image confirmation role.")
+    if args.split == "calibration" and not args.allow_calibration:
+        raise PermissionError("Calibration composite audit is locked; pass --allow-calibration explicitly.")
+    expected_images = {"confirmation": 511, "calibration": 508}[args.split]
+    csv_entry = data.get(f"{args.split}_csv")
+    if csv_entry is None and args.split == "calibration":
+        csv_entry = str(Path(data["confirmation_csv"]).with_name("calibration.csv"))
+    csv_path = ROOT / str(csv_entry)
+    if csv_path.name != f"{args.split}.csv" or len(pd.read_csv(csv_path)) != expected_images:
+        raise PermissionError(f"Unseen diagnostic accepts only the frozen {expected_images}-image {args.split} role.")
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is required.")
     device = torch.device("cuda")
@@ -89,8 +97,9 @@ def main() -> None:
         adapted = evaluate_callable(sadr, csv_path, degradation, int(data["evaluation_image_size"]), device)
         row = {"condition": name, "baseline_miou": baseline, "sadr_miou": adapted, "gain_pp": 100.0 * (adapted - baseline)}
         rows.append(row); print(json.dumps(row, sort_keys=True), flush=True)
-    summary = {"split": "confirmation_diagnostic_unseen_compositions", "images": 511, "rows": rows, "mean_gain_pp": float(np.mean([row["gain_pp"] for row in rows]))}
-    args.output.resolve().parent.mkdir(parents=True, exist_ok=True); args.output.resolve().write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    summary = {"split": f"{args.split}_diagnostic_unseen_compositions", "images": expected_images, "rows": rows, "mean_gain_pp": float(np.mean([row["gain_pp"] for row in rows])), "note": "Calibration is held out from SADR optimization; confirmation is a post-freeze diagnostic split." if args.split == "calibration" else "Post-freeze diagnostic on confirmation scenes; not an independent scene split."}
+    output_path = args.output or (ROOT / "outputs/sadr_long" / f"unseen_compositions_{args.split}.json")
+    output_path.resolve().parent.mkdir(parents=True, exist_ok=True); output_path.resolve().write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"mean_gain_pp": summary["mean_gain_pp"], "conditions": len(rows)}, indent=2), flush=True)
 
 

@@ -63,7 +63,7 @@ present in the training registry: color/turbidity, lowlight/blur,
 color/lowlight, and turbidity/blur, each in both application orders. No
 parameters or thresholds were changed for this test. The three SADR seeds
 improved by +1.241, +1.264, and +1.401 pp respectively (mean +1.302 pp); all
-16 seed-by-composition results were positive. This is evidence for
+24 seed-by-composition results were positive. This is evidence for
 compositional extrapolation of the residual adapter, not a replacement for
 the preregistered single-degradation confirmation result because the image
 split is reused diagnostically.
@@ -79,6 +79,25 @@ As a mechanism control, the seed-20260811 pixel-only checkpoint reaches only
 +0.486 pp on the same eight compositions, versus +1.241 pp for full SADR. The
 gap is especially clear for lowlight/blur, where pixel-only gains are near
 zero. This supports task supervision as the source of compositional transfer.
+
+The broader all-family/severity screen evaluates all six family pairs, both
+orders, and matched severities 1--3 on a 128-image confirmation subset per
+seed. Across 54 seed-by-relation cases, semantic order cosine is 0.995, 0.952,
+and 0.859 at severities 1, 2, and 3; semantic additivity is 0.877, 0.583,
+and 0.367. The same-image additive relation beats a shuffled-image null in all
+54 cases (mean cosine gap +0.234). Pixel AB/BA similarity is often high, so
+the operator-commutativity control is reported alongside the semantic result.
+These measurements support a severity-dependent, family-selective partial
+compositionality claim rather than universal order stability.
+
+As a held-out scene audit, the eight ordered compositions were also evaluated
+on all 508 calibration images. This split was not used by SADR optimization or
+the primary confirmation threshold, but a previously rejected quality-gate
+diagnostic had inspected it, so it is not presented as a pristine final test.
+Seed gains were +0.189, +0.212, and +0.433 pp (mean +0.278 pp), with 15/24
+positive seed-by-composition values. Color/turbidity and color/low-light
+transfer, while low-light/blur averaged -0.590 pp and turbidity/blur was near
+zero. The negative family result is retained as a limitation.
 
 ## Ablations on the same confirmation split
 
@@ -154,26 +173,30 @@ confirmation-derived gate.
 
 SADR-8 is the first route in this repository that passes the preregistered
 +0.50 pp confirmation gate across three seeds. The stronger mechanism result
-is the three-seed compositionality screen: semantic corrections are highly
-order-consistent (mean cosine 0.975), moderately binary-additive (0.785), and
-only partially triple-closed (0.535), while the frozen checkpoints improve
-eight unseen ordered compositions by +1.302 pp on average. This gives the
-paper a specific scientific question—why a task-supervised correction field
-transfers to unseen compositions—rather than only a parameter-count claim.
+is the combined fixed-pair and all-family analysis: the corrections are highly
+order-consistent for mild matched severities but degrade with severity, and
+the correct same-image additive relation beats a shuffled null in all 54
+screening cases. The confirmation stress test improves eight reused-scene
+compositions by +1.302 pp, while the calibration audit is only +0.278 pp on
+average. This gives the
+paper a specific, falsifiable question about when task-supervised correction
+fields transfer, rather than a universal compositionality claim or only a
+parameter-count claim.
 
 Direct additive, order-consistency, probability-KL, and unlabeled composite
 distillation penalties all reduced the primary confirmation gain to about
 +0.36 pp in matched seed-1 screens. They are retained as negative evidence,
-not folded into SADR. The safe method claim is therefore the emergent
-order-stable semantic correction of the frozen-expert adapter, accompanied by
-the compositional stress test and its mechanism controls; it is not an exact
-linear-composition law.
+not folded into SADR. The safe method claim is therefore the emergent,
+severity-dependent and family-selective semantic correction of the frozen-
+expert adapter, accompanied by the compositional stress test and its
+operator/null controls; it is not an exact linear-composition law.
 
 The contribution should still not be framed as the first task-driven
 underwater enhancement method. Prior work already uses semantic or
 downstream-task guidance. The novelty claim should be the frozen-expert,
-zero-initialized adapter, the observed semantic compositional-transfer
-mechanism, and the fixed multi-condition protocol. The paper still needs
+zero-initialized adapter, the observed severity-dependent semantic
+compositional-transfer mechanism with operator/null controls, and the fixed
+multi-condition protocol. The paper still needs
 qualitative figures, exact FLOP/latency accounting, and a comparison with at
 least one conventional enhancement baseline beyond GrayWorld.
 
