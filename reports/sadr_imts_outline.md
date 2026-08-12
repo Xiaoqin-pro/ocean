@@ -42,8 +42,9 @@ composition structure, with only 0.296% trainable parameter overhead.
 
 - Do not call SADR the first task-driven underwater enhancement method. TFUIE,
   STSC, and HSRUIE already use semantic or downstream-task guidance.
-- Do not claim real-world UVMulti generalization: the available subset is only
-  a held-out sanity check and did not improve.
+- Do not claim real-world UVMulti generalization: official val/video108 is
+  essentially unchanged, while train-video exploratory results are highly
+  heterogeneous and not a held-out test.
 - Do not claim universal blur recovery: blur-s3 is a known weakness.
 - Do not report the +0.746 pp mean as a percentage; it is +0.00746 absolute
   mIoU, or +0.746 percentage points.
@@ -89,8 +90,8 @@ report the mean -0.178 pp and do not hide it.
    attempts to impose compositionality.
 7. **Limitations:** source-domain cost, blur-s3 weakness, lowlight/blur
    failure in the held-out audit, partial UVMulti, confirmation-scene reuse in
-   the stress test, and the 21.4% measured latency overhead despite tiny
-   parameter overhead. Add the unfitted confidence self-gate as a negative
+   the stress test, the 21.4% measured latency overhead despite tiny parameter
+   overhead, and the five-video UVMulti heterogeneity audit. Add the unfitted confidence self-gate as a negative
    control: it reverses sign between calibration and confirmation.
 
 ## Reviewer-risk checklist

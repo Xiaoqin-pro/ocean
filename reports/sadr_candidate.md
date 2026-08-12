@@ -174,10 +174,14 @@ reconstruction objective. The same-seed confirmation gain was +0.612 pp
 difference is too small to justify a second claimed mechanism, so this variant
 is also retained as a negative control.
 
-The small UVMulti held-out sanity subset also did not improve: common-class
-mIoU stayed around 0.322 on raw frames and 0.319 on enhanced frames for both
-SADR seeds. This prevents claiming cross-dataset generalization from the
-available partial UVMulti download.
+The UVMulti audit now covers five labeled videos (154 sampled frames), but the
+roles must remain separate. The official held-out `val/video108` result is
+essentially unchanged across all three seeds (raw mean +0.018 pp, enhanced
+mean -0.018 pp). Four `train/` videos are exploratory only and are highly
+heterogeneous: video131 shows a seed-dependent +0.098--+5.841 pp range,
+whereas video24/video96 are near zero or negative. This prevents claiming
+cross-dataset generalization; the train-video spread is retained as an
+external failure/heterogeneity audit, not as validation evidence.
 
 The calibration-fitted quality gate was deliberately rejected: it reduced the
 confirmation gain to +0.243 pp. The final candidate therefore uses no
