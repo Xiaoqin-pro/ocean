@@ -2,7 +2,7 @@
 
 ## Working title
 
-**SADR: Order-Stable Semantic Correction Transfer for Robust Underwater
+**SADR: Emergent Partial Semantic Composition for Robust Underwater
 Segmentation with a Frozen Expert**
 
 ## One-sentence thesis
@@ -10,8 +10,8 @@ Segmentation with a Frozen Expert**
 Rather than retraining an underwater segmenter or optimizing enhancement for
 human visual quality, learn a zero-initialized residual image adapter using the
 frozen segmenter's semantic loss and clean/degraded public training pairs; the
-resulting semantic correction is strongly order-stable on unseen degradation
-compositions while adding only 0.296% trainable parameter overhead.
+resulting semantic correction exhibits severity-dependent, family-selective
+composition structure, with only 0.296% trainable parameter overhead.
 
 ## Contributions to claim
 
@@ -31,12 +31,12 @@ compositions while adding only 0.296% trainable parameter overhead.
    +1.302 pp. Label it diagnostic because it reuses the confirmation images;
    explain that its lower baseline (0.4209 versus 0.4799 in the primary table)
    creates more error headroom rather than implying a contradictory benchmark.
-5. A mechanism analysis showing a compositionality hierarchy in the frozen
-   expert's semantic correction field: order consistency (0.975 cosine) is
-   strong, binary additivity is moderate (0.785), and triple closure is weak
-   (0.535). Directly imposing these relations harms the primary task, so the
-   reported transfer is treated as an emergent property rather than a claimed
-   linear law.
+5. A mechanism analysis over all six family pairs and matched severities,
+   including operator commutativity and shuffled-image null controls. Correct
+   same-image additivity beats the null in 54/54 screening cases, while order
+   and additivity degrade at high severity. Directly imposing the relations
+   harms the primary task, so the transfer is treated as an emergent,
+   family-selective property rather than a claimed linear law.
 
 ## Claims not to make
 
@@ -77,7 +77,7 @@ report the mean -0.178 pp and do not hide it.
    that confirmation/test data never influence training or thresholds.
 5. **Results:** main table, three-seed error bars, per-family plot, unseen
    composition stress-test table, semantic-correction compositionality
-   hierarchy, and
+   hierarchy with all-family/null controls, held-out calibration audit, and
    qualitative grid. Use the condition-gain plot in
    `outputs/sadr_long/condition_gain_plot.png` and qualitative grid in
    `outputs/sadr_long/qualitative_grid.png`.
@@ -87,8 +87,10 @@ report the mean -0.178 pp and do not hide it.
    ordinary contrast enhancement did not explain the gain. Include additive,
    logit-order, probability-KL, and composite-distillation controls as failed
    attempts to impose compositionality.
-7. **Limitations:** source-domain cost, blur-s3 weakness, partial UVMulti,
-   and the 21.4% measured latency overhead despite tiny parameter overhead.
+7. **Limitations:** source-domain cost, blur-s3 weakness, lowlight/blur
+   failure in the held-out audit, partial UVMulti, confirmation-scene reuse in
+   the stress test, and the 21.4% measured latency overhead despite tiny
+   parameter overhead.
 
 ## Reviewer-risk checklist
 

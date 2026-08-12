@@ -28,15 +28,23 @@
    the confirmation images. Response: label it post-freeze diagnostic evidence,
    report both operator orders, and never present it as an independent split;
    the primary claim remains the locked single-degradation result.
-9. **Mechanism attribution.** A reviewer may attribute the composition gain to
+9. **Held-out composition weakness.** The calibration audit averages only
+   +0.278 pp and lowlight/blur is negative across orders. Response: report the
+   family-selective result and do not claim universal composition
+   generalization.
+10. **Operator commutativity.** A reviewer may argue that AB and BA images are
+   nearly identical. Response: report pixel AB/BA cosines beside semantic
+   order cosines; include the turbidity-s3/lowlight-s3 counterexample and the
+   shuffled-image null.
+11. **Mechanism attribution.** A reviewer may attribute the composition gain to
    generic image reconstruction. Response: show the pixel-only composition
    control (+0.486 pp versus full SADR +1.241 pp for the same seed).
-10. **Overclaiming compositionality.** A reviewer may ask whether the method
+12. **Overclaiming compositionality.** A reviewer may ask whether the method
     assumes a linear correction law. Response: report the measured hierarchy
-    (order cosine 0.975, binary additivity 0.785, triple closure 0.535), state
-    that direct additive/order/KL/distillation penalties reduce the primary
-    gain to about +0.36 pp, and describe transfer as an emergent,
-    order-stable semantic property rather than an imposed equation.
+    that matched-severity all-family order/additivity degrade from
+    0.995/0.877 to 0.859/0.367, direct additive/order/KL/distillation penalties
+    reduce the primary gain to about +0.36 pp, and describe transfer as an
+    emergent, partial semantic property rather than an imposed equation.
 
 ## Data-access audit
 

@@ -11,8 +11,10 @@
 | UVMulti validates real-world generalization | Available subset has only a small held-out frame sample and no improvement | Unsafe. Use only as a negative sanity check. |
 | SADR is lightweight | 11,012 trainable vs 3,716,200 frozen parameters; +21.4% measured latency at 384x384 | Safe if both parameter and latency costs are reported. |
 | Extra modules are necessary | Frequency, routing, and matched feature consistency did not exceed ordinary SADR | Unsafe. The evidence favors the simple semantic residual adapter. |
-| SADR transfers to unseen degradation compositions | Eight ordered compositions on the same confirmation images; all 3 seeds positive, mean +1.302 pp | Safe as a post-freeze compositional stress test; do not call it an independent split or real-world generalization. |
-| SADR corrections are exactly additive | Binary cosine is 0.785, triple cosine is 0.535; direct additive regularization reduces the primary gain | Unsafe. Claim order-stable/partially compositional semantic corrections, not a linear law. |
+| SADR transfers to unseen degradation compositions | Confirmation stress test: eight ordered compositions on reused scenes, mean +1.302 pp; calibration audit: +0.278 pp, 15/24 positive | Safe only as a post-freeze diagnostic with family-selective transfer; do not call it an independent or universal generalization result. |
+| SADR corrections are exactly additive | All-family screen: add cosine falls 0.877/0.583/0.367 from severity 1/2/3; correct-add beats shuffled null in 54/54 cases | Unsafe. Claim severity-dependent, family-selective partial compositionality, not a linear law. |
+| SADR order stability is universal | Order cosine is 0.995/0.952/0.859 for matched severity 1/2/3, with family outliers | Unsafe. State that order consistency is strongest at mild severity and degrades with severity. |
+| Held-out scenes establish robust composition generalization | Calibration audit mean +0.278 pp; lowlight/blur is -0.590 pp across orders | Unsafe. Call it a held-out audit and report the failed family explicitly. |
 | Compositionality regularization is the source of the gain | Additive, logit-order, probability-KL, and composite-distillation controls all fall to about +0.36 pp | Unsafe. Keep these as negative controls; the reported transfer is emergent from task-supervised SADR. |
 
 ## Minimum defensible abstract sentence

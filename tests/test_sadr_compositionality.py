@@ -1,6 +1,7 @@
 import pytest
 import torch
 
+from scripts.analyze_sadr_composition_controls import pixel_order_metrics, relation_metrics
 from reliability.sadr_seg import (
     semantic_compositionality_loss,
     semantic_order_consistency_loss,
@@ -28,3 +29,19 @@ def test_semantic_probability_order_loss_is_symmetric_and_finite():
     reverse = semantic_probability_order_loss(second, first)
     assert torch.isfinite(forward)
     assert torch.allclose(forward, reverse, atol=1e-7)
+
+
+def test_relation_metrics_detects_same_direction_and_opposite_direction():
+    first = torch.tensor([[[[1.0, 0.0]]]])
+    same = torch.tensor([[[[2.0, 0.0]]]])
+    opposite = torch.tensor([[[[-1.0, 0.0]]]])
+    assert relation_metrics(first, same)["cosine"] > 0.99
+    assert relation_metrics(first, opposite)["cosine"] < -0.99
+
+
+def test_pixel_order_metrics_is_zero_for_identical_images():
+    image = torch.rand(2, 3, 4, 4)
+    metrics = pixel_order_metrics(image, image.clone())
+    assert metrics["cosine"] > 0.999
+    assert metrics["mean_abs_difference"] == pytest.approx(0.0)
+    assert metrics["relative_l1"] == pytest.approx(0.0)
