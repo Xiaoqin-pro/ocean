@@ -1,0 +1,20 @@
+experiment:
+  name: parameter_efficiency
+  branch: experiment/sgre-seg
+  seed: 20260811
+  output_dir: outputs/parameter_efficiency
+
+data:
+  train_csv: data/uiis_processed/splits/uiis_alpha010_confirmation/train.csv
+  degradation_registry: configs/degradation_pilot.yaml
+  image_size: 384
+  uiis_config: configs/uiis_scdi_replication.yaml
+  train_images: 2371
+
+training:
+  epochs: 8
+  batch_size: 4
+  learning_rate: 0.00001
+  weight_decay: 0.01
+  amp: true
+  checkpoint_selection: final_epoch

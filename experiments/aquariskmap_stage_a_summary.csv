@@ -1,0 +1,3 @@
+model,full_eaurc_relative_decrease,boundary_eaurc_relative_decrease,full_error_auprc_increase,full_top10_recall_increase,raw_crc_coverage,aquariskmap_crc_coverage,crc_coverage_improvement,crc_selective_risk_difference,base_median_ms,added_median_ms,added_fraction_of_base,risk_head_parameters,ranking_gate_pass,crc_gate_pass,latency_gate_pass,parameter_gate_pass,stage_a_complete_pass
+segformer,-0.0441107956,-0.0222812204,-0.0125222977,-0.0047835485,0.31,0.35,0.04,0.0047600261,17.3124500,3.4803500,0.2010316280,15615,false,false,false,true,false
+deeplab,0.0018930316,0.0379432389,0.0104905945,0.0073445409,0.20,0.22,0.02,0.0031774099,8.6966000,2.5470000,0.2928730788,15615,false,false,false,true,false

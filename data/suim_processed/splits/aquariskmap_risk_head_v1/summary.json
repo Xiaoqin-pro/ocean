@@ -1,0 +1,20 @@
+{
+  "split_version": "aquariskmap_risk_head_v1",
+  "parent_split": "v2_scene_grouped_deduplicated/train.csv",
+  "parent_split_sha256": "025834309AC72F93F48A00409B49C5A9B0F5DF6642E1EA4D0EA14A3D4C5EDD89",
+  "seed": 20260725,
+  "group_splitter": "GroupShuffleSplit(train_size=0.8)",
+  "counts": {
+    "risk_head_train": 936,
+    "risk_head_development": 231
+  },
+  "csv_sha256": {
+    "risk_head_train": "7CF81D0B822A70414764E71BD596DBF8500B19D3D9667A5F9F066C7AF7656D07",
+    "risk_head_development": "FF27E7E33B3BE077D44DBE1B2B7F4649ED691CBC8D8C3F0DFD06DC64D35335E6"
+  },
+  "sample_leakage": false,
+  "scene_group_leakage": false,
+  "formal_validation_read": false,
+  "formal_calibration_read": false,
+  "official_suim_test_evaluated": false
+}

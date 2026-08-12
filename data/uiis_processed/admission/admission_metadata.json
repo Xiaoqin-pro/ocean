@@ -1,0 +1,21 @@
+{
+  "protocol_status": "admission_finalized_before_split",
+  "official_suim_test_evaluated": false,
+  "official_suim_test_used_for_duplicate_audit_only": true,
+  "source_images": 4628,
+  "admitted_images": 3390,
+  "excluded_images": 1238,
+  "exclusions_by_type": {
+    "suim_overlap_automatic": 1220,
+    "suim_overlap_visual_review": 13,
+    "uiis_internal_exact_duplicate": 5
+  },
+  "admitted_by_source_partition": {
+    "train": 2875,
+    "val": 515
+  },
+  "internal_exact_duplicate_groups": 6,
+  "manual_phash4_review_status": "complete",
+  "manual_same_scene_pairs": 13,
+  "manual_different_scene_pairs": 0
+}

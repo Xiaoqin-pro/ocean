@@ -1,0 +1,36 @@
+experiment:
+  name: cosa_fast
+  branch: experiment/sgre-seg
+  seed: 20260811
+  output_dir: outputs/cosa_fast
+
+data:
+  uiis_train_csv: data/uiis_processed/splits/uiis_alpha010_confirmation/train.csv
+  uiis_confirmation_csv: data/uiis_processed/splits/uiis_alpha010_confirmation/confirmation.csv
+  uiis_config: configs/uiis_scdi_replication.yaml
+  uvmulti_root: data/uvmulti/train
+  degradation_registry: configs/degradation_pilot.yaml
+  image_size: 256
+  evaluation_image_size: 384
+
+evaluation:
+  conditions: [clean, color_s1, color_s2, color_s3, turbidity_s1, turbidity_s2, turbidity_s3, lowlight_s1, lowlight_s2, lowlight_s3, blur_s1, blur_s2, blur_s3]
+
+model:
+  hidden_sizes: [32, 64, 160, 256]
+  num_classes: 8
+  rectifier_reduction: 4
+
+training:
+  epochs: 4
+  batch_size: 8
+  uv_batch_size: 4
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  amp: true
+  uiis_weight: 1.0
+  uiis_s3_weight: 0.50
+  uvmulti_weight: 0.50
+  view_consistency_weight: 0.05
+  cross_ontology_weight: 0.05
+  residual_weight: 0.01

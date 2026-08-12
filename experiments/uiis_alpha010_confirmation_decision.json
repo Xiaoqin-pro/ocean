@@ -1,0 +1,17 @@
+{
+  "target_alpha": 0.1,
+  "passes": {
+    "coverage_at_least_3pp_all_seeds": false,
+    "coverage_ci_lower_above_zero_all_seeds": false,
+    "aggregate_risk_at_most_alpha_all_seeds": true,
+    "lowlight_not_worse_than_global_all_seeds": true,
+    "worst_quality_group_not_worse_than_global_all_seeds": true,
+    "consistent_positive_direction_all_seeds": false
+  },
+  "protocol_pass": false,
+  "confirmation_evaluated": true,
+  "official_suim_test_evaluated": false,
+  "checkpoint_sha256": "C2EAD86D324A02AD874C5DBDF88CC5238F9ABC0C9E673A1EE08D5CFE99DB1B52",
+  "parameters_sha256": "308881BD02A8C559143E83FDA952A12B56B9B19E323DAB1A88CA8E5B6F523BFE",
+  "config_sha256": "FEE7CB807BE71D4ED7C0AAC2F6762963FE9F0278439627E9ECC09100CBC03524"
+}

@@ -1,0 +1,838 @@
+{
+  "global": {
+    "0.05": {
+      "crc": {
+        "coverage": 0.01,
+        "index": 0,
+        "empirical_risk": 0.0446087762759829,
+        "corrected_risk": 0.05110803630131635,
+        "alpha": 0.05,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "naive": {
+        "coverage": 0.01,
+        "index": 0,
+        "empirical_risk": 0.0446087762759829,
+        "corrected_risk": 0.0446087762759829,
+        "alpha": 0.05,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      }
+    },
+    "0.1": {
+      "crc": {
+        "coverage": 0.31,
+        "index": 30,
+        "empirical_risk": 0.09292228246083409,
+        "corrected_risk": 0.09909287917878759,
+        "alpha": 0.1,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "naive": {
+        "coverage": 0.38,
+        "index": 37,
+        "empirical_risk": 0.09943084869135961,
+        "corrected_risk": 0.09943084869135961,
+        "alpha": 0.1,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      }
+    },
+    "0.15": {
+      "crc": {
+        "coverage": 0.75,
+        "index": 74,
+        "empirical_risk": 0.143639238573442,
+        "corrected_risk": 0.14946482198450703,
+        "alpha": 0.15,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "naive": {
+        "coverage": 0.79,
+        "index": 78,
+        "empirical_risk": 0.14912970357831973,
+        "corrected_risk": 0.14912970357831973,
+        "alpha": 0.15,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      }
+    }
+  },
+  "oracle": {
+    "0.05": {
+      "clean": {
+        "coverage": 0.01,
+        "index": 0,
+        "empirical_risk": 0.036441435834093094,
+        "corrected_risk": 0.04299625599848702,
+        "alpha": 0.05,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "color_s1": {
+        "coverage": 0.01,
+        "index": 0,
+        "empirical_risk": 0.04193894829352272,
+        "corrected_risk": 0.04845637041397494,
+        "alpha": 0.05,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "color_s2": {
+        "coverage": 0.01,
+        "index": 0,
+        "empirical_risk": 0.0472348842463673,
+        "corrected_risk": 0.053716279591630105,
+        "alpha": 0.05,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "color_s3": {
+        "coverage": 0.01,
+        "index": 0,
+        "empirical_risk": 0.03783387966830386,
+        "corrected_risk": 0.04437922742566233,
+        "alpha": 0.05,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "turbidity_s1": {
+        "coverage": 0.01,
+        "index": 0,
+        "empirical_risk": 0.03382309230223094,
+        "corrected_risk": 0.040395724327385835,
+        "alpha": 0.05,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "turbidity_s2": {
+        "coverage": 0.01,
+        "index": 0,
+        "empirical_risk": 0.04017301519682044,
+        "corrected_risk": 0.04670245046759037,
+        "alpha": 0.05,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "turbidity_s3": {
+        "coverage": 0.01,
+        "index": 0,
+        "empirical_risk": 0.05327697110375109,
+        "corrected_risk": 0.059717263817331015,
+        "alpha": 0.05,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "lowlight_s1": {
+        "coverage": 0.02,
+        "index": 1,
+        "empirical_risk": 0.043193839185820156,
+        "corrected_risk": 0.049702724633535665,
+        "alpha": 0.05,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "lowlight_s2": {
+        "coverage": 0.02,
+        "index": 1,
+        "empirical_risk": 0.041229411180622316,
+        "corrected_risk": 0.047751660084155496,
+        "alpha": 0.05,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "lowlight_s3": {
+        "coverage": 0.01,
+        "index": 0,
+        "empirical_risk": 0.07726899832439264,
+        "corrected_risk": 0.08354607996844439,
+        "alpha": 0.05,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "blur_s1": {
+        "coverage": 0.02,
+        "index": 1,
+        "empirical_risk": 0.04081024688649412,
+        "corrected_risk": 0.04733534724781049,
+        "alpha": 0.05,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "blur_s2": {
+        "coverage": 0.01,
+        "index": 0,
+        "empirical_risk": 0.044067573990379395,
+        "corrected_risk": 0.05057051566391423,
+        "alpha": 0.05,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "blur_s3": {
+        "coverage": 0.01,
+        "index": 0,
+        "empirical_risk": 0.06341235553175976,
+        "corrected_risk": 0.06978370005195186,
+        "alpha": 0.05,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      }
+    },
+    "0.1": {
+      "clean": {
+        "coverage": 0.42,
+        "index": 41,
+        "empirical_risk": 0.0931053695806702,
+        "corrected_risk": 0.09927472080801257,
+        "alpha": 0.1,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "color_s1": {
+        "coverage": 0.42,
+        "index": 41,
+        "empirical_risk": 0.09381156028104844,
+        "corrected_risk": 0.0999761074900209,
+        "alpha": 0.1,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "color_s2": {
+        "coverage": 0.37,
+        "index": 36,
+        "empirical_risk": 0.09350796798653765,
+        "corrected_risk": 0.09967458044921426,
+        "alpha": 0.1,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "color_s3": {
+        "coverage": 0.37,
+        "index": 36,
+        "empirical_risk": 0.09340466674708196,
+        "corrected_risk": 0.09957198193927867,
+        "alpha": 0.1,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "turbidity_s1": {
+        "coverage": 0.44,
+        "index": 43,
+        "empirical_risk": 0.09336102768884302,
+        "corrected_risk": 0.0995286397453815,
+        "alpha": 0.1,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "turbidity_s2": {
+        "coverage": 0.41,
+        "index": 40,
+        "empirical_risk": 0.09368113966431263,
+        "corrected_risk": 0.09984657408836492,
+        "alpha": 0.1,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "turbidity_s3": {
+        "coverage": 0.22,
+        "index": 21,
+        "empirical_risk": 0.09379546935877892,
+        "corrected_risk": 0.09996012602980762,
+        "alpha": 0.1,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "lowlight_s1": {
+        "coverage": 0.42,
+        "index": 41,
+        "empirical_risk": 0.09371870155261093,
+        "corrected_risk": 0.09988388045361357,
+        "alpha": 0.1,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "lowlight_s2": {
+        "coverage": 0.35,
+        "index": 34,
+        "empirical_risk": 0.09343656436007447,
+        "corrected_risk": 0.09960366256170661,
+        "alpha": 0.1,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "lowlight_s3": {
+        "coverage": 0.03,
+        "index": 2,
+        "empirical_risk": 0.09161076388498832,
+        "corrected_risk": 0.0977902824980156,
+        "alpha": 0.1,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "blur_s1": {
+        "coverage": 0.41,
+        "index": 40,
+        "empirical_risk": 0.09296268005704879,
+        "corrected_risk": 0.09913300196142259,
+        "alpha": 0.1,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "blur_s2": {
+        "coverage": 0.43,
+        "index": 42,
+        "empirical_risk": 0.09271976344499396,
+        "corrected_risk": 0.09889173784332732,
+        "alpha": 0.1,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "blur_s3": {
+        "coverage": 0.19,
+        "index": 18,
+        "empirical_risk": 0.09348023328996918,
+        "corrected_risk": 0.09964703442405101,
+        "alpha": 0.1,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      }
+    },
+    "0.15": {
+      "clean": {
+        "coverage": 0.87,
+        "index": 86,
+        "empirical_risk": 0.14406299487755822,
+        "corrected_risk": 0.14988569559267687,
+        "alpha": 0.15,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "color_s1": {
+        "coverage": 0.85,
+        "index": 84,
+        "empirical_risk": 0.14271865565271508,
+        "corrected_risk": 0.14855050153262858,
+        "alpha": 0.15,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "color_s2": {
+        "coverage": 0.81,
+        "index": 80,
+        "empirical_risk": 0.14392861348973732,
+        "corrected_risk": 0.1497522283639568,
+        "alpha": 0.15,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "color_s3": {
+        "coverage": 0.79,
+        "index": 78,
+        "empirical_risk": 0.14389892232675763,
+        "corrected_risk": 0.14972273918167767,
+        "alpha": 0.15,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "turbidity_s1": {
+        "coverage": 0.87,
+        "index": 86,
+        "empirical_risk": 0.14307754331684297,
+        "corrected_risk": 0.14890694778407534,
+        "alpha": 0.15,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "turbidity_s2": {
+        "coverage": 0.83,
+        "index": 82,
+        "empirical_risk": 0.14273861970030163,
+        "corrected_risk": 0.1485703297703676,
+        "alpha": 0.15,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "turbidity_s3": {
+        "coverage": 0.68,
+        "index": 67,
+        "empirical_risk": 0.14403789607923212,
+        "corrected_risk": 0.14986076753447544,
+        "alpha": 0.15,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "lowlight_s1": {
+        "coverage": 0.85,
+        "index": 84,
+        "empirical_risk": 0.14268087683032643,
+        "corrected_risk": 0.1485129797090317,
+        "alpha": 0.15,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "lowlight_s2": {
+        "coverage": 0.78,
+        "index": 77,
+        "empirical_risk": 0.14281665527817008,
+        "corrected_risk": 0.14864783449396485,
+        "alpha": 0.15,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "lowlight_s3": {
+        "coverage": 0.32,
+        "index": 31,
+        "empirical_risk": 0.14330129472261421,
+        "corrected_risk": 0.14912917707143997,
+        "alpha": 0.15,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "blur_s1": {
+        "coverage": 0.84,
+        "index": 83,
+        "empirical_risk": 0.1428326508893194,
+        "corrected_risk": 0.14866372129143288,
+        "alpha": 0.15,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "blur_s2": {
+        "coverage": 0.78,
+        "index": 77,
+        "empirical_risk": 0.14402431373157812,
+        "corrected_risk": 0.14984727758374425,
+        "alpha": 0.15,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      },
+      "blur_s3": {
+        "coverage": 0.55,
+        "index": 54,
+        "empirical_risk": 0.14342411342990438,
+        "corrected_risk": 0.14925116027732,
+        "alpha": 0.15,
+        "sample_count": 146,
+        "monotonic_direction": "increasing"
+      }
+    }
+  },
+  "quality_group": {
+    "0.05": {
+      "20260722": {
+        "groups": {
+          "0": {
+            "coverage": 0.01,
+            "index": 0,
+            "empirical_risk": 0.044525688185598954,
+            "corrected_risk": 0.051025513436037055,
+            "alpha": 0.05,
+            "sample_count": 146,
+            "monotonic_direction": "increasing"
+          },
+          "1": {
+            "coverage": 0.01,
+            "index": 0,
+            "empirical_risk": 0.05088434019995071,
+            "corrected_risk": 0.05742996543995105,
+            "alpha": 0.05,
+            "sample_count": 144,
+            "monotonic_direction": "increasing"
+          },
+          "2": {
+            "coverage": 0.03,
+            "index": 2,
+            "empirical_risk": 0.03831307525289958,
+            "corrected_risk": 0.0478347279731679,
+            "alpha": 0.05,
+            "sample_count": 100,
+            "monotonic_direction": "increasing"
+          }
+        },
+        "cluster_counts": {
+          "0": 146,
+          "1": 144,
+          "2": 100
+        },
+        "fallback": {
+          "coverage": 0.01,
+          "index": 0,
+          "empirical_risk": 0.0446087762759829,
+          "corrected_risk": 0.05110803630131635,
+          "alpha": 0.05,
+          "sample_count": 146,
+          "monotonic_direction": "increasing"
+        }
+      },
+      "20260723": {
+        "groups": {
+          "0": {
+            "coverage": 0.01,
+            "index": 0,
+            "empirical_risk": 0.04431465773664619,
+            "corrected_risk": 0.050815918568369686,
+            "alpha": 0.05,
+            "sample_count": 146,
+            "monotonic_direction": "increasing"
+          },
+          "1": {
+            "coverage": 0.01,
+            "index": 0,
+            "empirical_risk": 0.05090534118769736,
+            "corrected_risk": 0.05745082159329944,
+            "alpha": 0.05,
+            "sample_count": 144,
+            "monotonic_direction": "increasing"
+          },
+          "2": {
+            "coverage": 0.03,
+            "index": 2,
+            "empirical_risk": 0.037936891625162894,
+            "corrected_risk": 0.04736888288373973,
+            "alpha": 0.05,
+            "sample_count": 101,
+            "monotonic_direction": "increasing"
+          }
+        },
+        "cluster_counts": {
+          "0": 146,
+          "1": 144,
+          "2": 101
+        },
+        "fallback": {
+          "coverage": 0.01,
+          "index": 0,
+          "empirical_risk": 0.0446087762759829,
+          "corrected_risk": 0.05110803630131635,
+          "alpha": 0.05,
+          "sample_count": 146,
+          "monotonic_direction": "increasing"
+        }
+      },
+      "20260724": {
+        "groups": {
+          "0": {
+            "coverage": 0.01,
+            "index": 0,
+            "empirical_risk": 0.04431465773664619,
+            "corrected_risk": 0.050815918568369686,
+            "alpha": 0.05,
+            "sample_count": 146,
+            "monotonic_direction": "increasing"
+          },
+          "1": {
+            "coverage": 0.01,
+            "index": 0,
+            "empirical_risk": 0.05090534118769736,
+            "corrected_risk": 0.05745082159329944,
+            "alpha": 0.05,
+            "sample_count": 144,
+            "monotonic_direction": "increasing"
+          },
+          "2": {
+            "coverage": 0.03,
+            "index": 2,
+            "empirical_risk": 0.037937227251976506,
+            "corrected_risk": 0.047369215220094386,
+            "alpha": 0.05,
+            "sample_count": 101,
+            "monotonic_direction": "increasing"
+          }
+        },
+        "cluster_counts": {
+          "0": 146,
+          "1": 144,
+          "2": 101
+        },
+        "fallback": {
+          "coverage": 0.01,
+          "index": 0,
+          "empirical_risk": 0.0446087762759829,
+          "corrected_risk": 0.05110803630131635,
+          "alpha": 0.05,
+          "sample_count": 146,
+          "monotonic_direction": "increasing"
+        }
+      }
+    },
+    "0.1": {
+      "20260722": {
+        "groups": {
+          "0": {
+            "coverage": 0.32,
+            "index": 31,
+            "empirical_risk": 0.09347997886950982,
+            "corrected_risk": 0.09964678173434308,
+            "alpha": 0.1,
+            "sample_count": 146,
+            "monotonic_direction": "increasing"
+          },
+          "1": {
+            "coverage": 0.25,
+            "index": 24,
+            "empirical_risk": 0.09368824592979132,
+            "corrected_risk": 0.09993867181993069,
+            "alpha": 0.1,
+            "sample_count": 144,
+            "monotonic_direction": "increasing"
+          },
+          "2": {
+            "coverage": 0.54,
+            "index": 53,
+            "empirical_risk": 0.09085080561937503,
+            "corrected_risk": 0.09985228279146043,
+            "alpha": 0.1,
+            "sample_count": 100,
+            "monotonic_direction": "increasing"
+          }
+        },
+        "cluster_counts": {
+          "0": 146,
+          "1": 144,
+          "2": 100
+        },
+        "fallback": {
+          "coverage": 0.31,
+          "index": 30,
+          "empirical_risk": 0.09292228246083409,
+          "corrected_risk": 0.09909287917878759,
+          "alpha": 0.1,
+          "sample_count": 146,
+          "monotonic_direction": "increasing"
+        }
+      },
+      "20260723": {
+        "groups": {
+          "0": {
+            "coverage": 0.31,
+            "index": 30,
+            "empirical_risk": 0.09286700131014036,
+            "corrected_risk": 0.09903797409034348,
+            "alpha": 0.1,
+            "sample_count": 146,
+            "monotonic_direction": "increasing"
+          },
+          "1": {
+            "coverage": 0.24,
+            "index": 23,
+            "empirical_risk": 0.09259700370874827,
+            "corrected_risk": 0.09885495540730863,
+            "alpha": 0.1,
+            "sample_count": 144,
+            "monotonic_direction": "increasing"
+          },
+          "2": {
+            "coverage": 0.52,
+            "index": 51,
+            "empirical_risk": 0.0902875520450204,
+            "corrected_risk": 0.09920630153477511,
+            "alpha": 0.1,
+            "sample_count": 101,
+            "monotonic_direction": "increasing"
+          }
+        },
+        "cluster_counts": {
+          "0": 146,
+          "1": 144,
+          "2": 101
+        },
+        "fallback": {
+          "coverage": 0.31,
+          "index": 30,
+          "empirical_risk": 0.09292228246083409,
+          "corrected_risk": 0.09909287917878759,
+          "alpha": 0.1,
+          "sample_count": 146,
+          "monotonic_direction": "increasing"
+        }
+      },
+      "20260724": {
+        "groups": {
+          "0": {
+            "coverage": 0.32,
+            "index": 31,
+            "empirical_risk": 0.09316877017188945,
+            "corrected_risk": 0.09933769010269292,
+            "alpha": 0.1,
+            "sample_count": 146,
+            "monotonic_direction": "increasing"
+          },
+          "1": {
+            "coverage": 0.24,
+            "index": 23,
+            "empirical_risk": 0.09259700370874827,
+            "corrected_risk": 0.09885495540730863,
+            "alpha": 0.1,
+            "sample_count": 144,
+            "monotonic_direction": "increasing"
+          },
+          "2": {
+            "coverage": 0.52,
+            "index": 51,
+            "empirical_risk": 0.09028229446167724,
+            "corrected_risk": 0.09920109549636669,
+            "alpha": 0.1,
+            "sample_count": 101,
+            "monotonic_direction": "increasing"
+          }
+        },
+        "cluster_counts": {
+          "0": 146,
+          "1": 144,
+          "2": 101
+        },
+        "fallback": {
+          "coverage": 0.31,
+          "index": 30,
+          "empirical_risk": 0.09292228246083409,
+          "corrected_risk": 0.09909287917878759,
+          "alpha": 0.1,
+          "sample_count": 146,
+          "monotonic_direction": "increasing"
+        }
+      }
+    },
+    "0.15": {
+      "20260722": {
+        "groups": {
+          "0": {
+            "coverage": 0.75,
+            "index": 74,
+            "empirical_risk": 0.14395617933913768,
+            "corrected_risk": 0.14977960669057214,
+            "alpha": 0.15,
+            "sample_count": 146,
+            "monotonic_direction": "increasing"
+          },
+          "1": {
+            "coverage": 0.68,
+            "index": 67,
+            "empirical_risk": 0.14359143906201804,
+            "corrected_risk": 0.14949770499952136,
+            "alpha": 0.15,
+            "sample_count": 144,
+            "monotonic_direction": "increasing"
+          },
+          "2": {
+            "coverage": 0.91,
+            "index": 90,
+            "empirical_risk": 0.1405437885881838,
+            "corrected_risk": 0.14905325602790476,
+            "alpha": 0.15,
+            "sample_count": 100,
+            "monotonic_direction": "increasing"
+          }
+        },
+        "cluster_counts": {
+          "0": 146,
+          "1": 144,
+          "2": 100
+        },
+        "fallback": {
+          "coverage": 0.75,
+          "index": 74,
+          "empirical_risk": 0.143639238573442,
+          "corrected_risk": 0.14946482198450703,
+          "alpha": 0.15,
+          "sample_count": 146,
+          "monotonic_direction": "increasing"
+        }
+      },
+      "20260723": {
+        "groups": {
+          "0": {
+            "coverage": 0.74,
+            "index": 73,
+            "empirical_risk": 0.14307342650667038,
+            "corrected_risk": 0.14890285897941413,
+            "alpha": 0.15,
+            "sample_count": 146,
+            "monotonic_direction": "increasing"
+          },
+          "1": {
+            "coverage": 0.68,
+            "index": 67,
+            "empirical_risk": 0.14364635964026698,
+            "corrected_risk": 0.14955224681516172,
+            "alpha": 0.15,
+            "sample_count": 144,
+            "monotonic_direction": "increasing"
+          },
+          "2": {
+            "coverage": 0.9,
+            "index": 89,
+            "empirical_risk": 0.1404824732915874,
+            "corrected_risk": 0.1489091157102973,
+            "alpha": 0.15,
+            "sample_count": 101,
+            "monotonic_direction": "increasing"
+          }
+        },
+        "cluster_counts": {
+          "0": 146,
+          "1": 144,
+          "2": 101
+        },
+        "fallback": {
+          "coverage": 0.75,
+          "index": 74,
+          "empirical_risk": 0.143639238573442,
+          "corrected_risk": 0.14946482198450703,
+          "alpha": 0.15,
+          "sample_count": 146,
+          "monotonic_direction": "increasing"
+        }
+      },
+      "20260724": {
+        "groups": {
+          "0": {
+            "coverage": 0.75,
+            "index": 74,
+            "empirical_risk": 0.14343862881496658,
+            "corrected_risk": 0.14926557691826614,
+            "alpha": 0.15,
+            "sample_count": 146,
+            "monotonic_direction": "increasing"
+          },
+          "1": {
+            "coverage": 0.68,
+            "index": 67,
+            "empirical_risk": 0.14364635964026698,
+            "corrected_risk": 0.14955224681516172,
+            "alpha": 0.15,
+            "sample_count": 144,
+            "monotonic_direction": "increasing"
+          },
+          "2": {
+            "coverage": 0.9,
+            "index": 89,
+            "empirical_risk": 0.14047990800505017,
+            "corrected_risk": 0.1489065755736281,
+            "alpha": 0.15,
+            "sample_count": 101,
+            "monotonic_direction": "increasing"
+          }
+        },
+        "cluster_counts": {
+          "0": 146,
+          "1": 144,
+          "2": 101
+        },
+        "fallback": {
+          "coverage": 0.75,
+          "index": 74,
+          "empirical_risk": 0.143639238573442,
+          "corrected_risk": 0.14946482198450703,
+          "alpha": 0.15,
+          "sample_count": 146,
+          "monotonic_direction": "increasing"
+        }
+      }
+    }
+  },
+  "official_test_evaluated": false,
+  "model_retrained": false
+}

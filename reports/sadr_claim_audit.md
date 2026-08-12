@@ -1,0 +1,36 @@
+# SADR claim audit
+
+| proposed sentence | evidence | safe wording |
+|---|---|---|
+| SADR improves robustness | Three 8-epoch seeds: +0.607, +0.760, +0.872 pp on the locked 13-condition UIIS confirmation split | Safe. Report mean +0.746 pp and seed spread. |
+| SADR is statistically reliable | Three seed gains, one-sample t-test p=0.0105 | Use as a stability indication, not a large-sample significance claim. |
+| SADR generalizes to SUIM | SUIM changes are -0.130, -0.197, -0.207 pp | Unsafe. Say source-domain cost is small but external transfer is not improved. |
+| SADR is better than generic enhancement | GrayWorld +0.221 pp and CLAHE -1.596 pp on confirmation | Safe against these two controls only; do not claim all enhancement methods. |
+| SADR is the first task-driven underwater enhancement method | TFUIE, STSC, and HSRUIE predate this work | Unsafe. Claim frozen-expert parameter efficiency and robustness protocol instead. |
+| SADR handles all underwater degradations | Blur-s3 mean is about -0.43 pp | Unsafe. State color/low-light gains and blur limitation. |
+| UVMulti validates real-world generalization | Official val/video108: raw mean +0.018 pp, enhanced -0.018 pp across three seeds; train-video audit is highly heterogeneous | Unsafe. Use val as a negative external check and train videos only as exploratory heterogeneity evidence. |
+| SADR is lightweight | 11,012 trainable vs 3,716,200 frozen parameters; +21.4% measured latency at 384x384 | Safe if both parameter and latency costs are reported. |
+| Extra modules are necessary | Frequency, routing, and matched feature consistency did not exceed ordinary SADR | Unsafe. The evidence favors the simple semantic residual adapter. |
+| SADR transfers to unseen degradation compositions | Confirmation stress test: eight ordered compositions on reused scenes, mean +1.302 pp; calibration audit: +0.278 pp, 15/24 positive | Safe only as a post-freeze diagnostic with family-selective transfer; do not call it an independent or universal generalization result. |
+| SADR corrections are exactly additive | All-family screen: add cosine falls 0.877/0.583/0.367 from severity 1/2/3; correct-add beats shuffled null in 54/54 cases | Unsafe. Claim severity-dependent, family-selective partial compositionality, not a linear law. |
+| SADR order stability is universal | Order cosine is 0.995/0.952/0.859 for matched severity 1/2/3, with family outliers | Unsafe. State that order consistency is strongest at mild severity and degrades with severity. |
+| Held-out scenes establish robust composition generalization | Calibration audit mean +0.278 pp; lowlight/blur is -0.590 pp across orders | Unsafe. Call it a held-out audit and report the failed family explicitly. |
+| Semantic cosine predicts composite mIoU gain | Cross-relation additivity correlations are only 0.193--0.327; order correlations are -0.045--0.039 | Unsafe. Treat geometry as mechanism evidence, not a sufficient family-selection rule. |
+| Unfitted confidence gate safely selects SADR | Entropy selector +0.254 pp over SADR on calibration but -0.161 pp on confirmation | Unsafe. Prediction confidence is a negative control, not a deployable gate. |
+| Train-only learned gate rescues source-domain cost safely | Confirmation 0.484370 vs always-on SADR 0.485939 (-0.157 pp); SUIM cost about -0.070 pp | Unsafe. Smaller external cost does not justify primary robustness loss. |
+| Shared residual basis explains composition transfer | Learnable four-basis control: +0.375 pp confirmation, +0.853 pp reused-scene compositions; coefficients co-vary with strength | Unsafe. Factorization is a negative architectural control, not the claimed mechanism. |
+| Compositionality regularization is the source of the gain | Additive, logit-order, probability-KL, and composite-distillation controls all fall to about +0.36 pp | Unsafe. Keep these as negative controls; the reported transfer is emergent from task-supervised SADR. |
+| Compositional transfer is unique to SADR | Four-pair ordered diagnostic: SADR +1.141 pp confirmation, head-only +0.881, last-block +1.693, full FT +5.807; calibration SADR -0.270 versus positive partial/full FT | Unsafe. Say SADR retains measurable transfer under a 0.296% frozen-expert update budget; transfer is not exclusive to the front-end. |
+| SADR's confirmation gain is explained by parameter count alone | Rank-2 q/v LoRA uses 8,192 parameters (0.220%) but gains only +0.226 pp versus SADR +0.607 pp | Unsafe. State that matched low-rank parameter count does not reproduce the target robustness gain; do not claim all PEFT methods are inferior. |
+| SADR matches full fine-tuning | Full FT gains +2.281 pp on UIIS confirmation and +3.123 pp on SUIM, versus SADR +0.607 pp and -0.130 pp in the matched seed-1 comparison | Unsafe. State that SADR is parameter-efficient and outperforms the tested partial-FT baselines on confirmation, while full FT remains stronger. |
+| More trainable parameters monotonically improve confirmation robustness | Head-only +0.192 pp and last-block-only +0.312 pp are both below SADR +0.607 pp, while full FT reaches +2.281 pp | Unsafe as a monotonic claim. Use the Pareto table as a controlled reference, not a universal scaling law. |
+| SADR improves external SUIM transfer | SADR changes -0.130 pp, while head-only, last-block-only, and full FT change +0.381, +0.558, and +3.123 pp | Unsafe. Report the source-domain cost and distinguish it from the confirmation robustness result. |
+
+## Minimum defensible abstract sentence
+
+“On a locked UIIS robustness protocol with 13 deterministic color, turbidity,
+low-light, blur, and clean conditions, the proposed adapter improves mean mIoU
+by 0.746 percentage points over a frozen UIIS-F4 expert across three seeds,
+while adding 0.296% trainable parameters; the method improves synthetic
+cross-condition robustness but incurs a small mean cost on the untouched SUIM
+source-domain check.”

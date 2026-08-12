@@ -1,0 +1,54 @@
+{
+  "split_version": "uiis_alpha010_confirmation_v1",
+  "protocol": "Fresh UIIS scene-group-aware train/calibration/confirmation split for preregistered alpha=0.10 confirmation.",
+  "official_suim_test_evaluated": false,
+  "selection_seed": 20260779,
+  "candidate_count": 300,
+  "balance_score": 0.013680879097528291,
+  "target_ratios": {
+    "train": 0.7,
+    "calibration": 0.15,
+    "confirmation": 0.15
+  },
+  "split_counts": {
+    "train": 2371,
+    "calibration": 508,
+    "confirmation": 511
+  },
+  "split_sha256": {
+    "train": "ff2cd6792f93a04dd0441da2371cd44d675b777d9bc6480914e484b4667279ad",
+    "calibration": "daee4930b8bcd21b0f25be8b38c2378b1bedd016ec4048f268536f1db8c68da1",
+    "confirmation": "a6ec919ca841e01b418ea0b6ae00c9b660a3b80eaaf9ec1d460a15ab5b7ad08e"
+  },
+  "scene_group_leakage": false,
+  "train_class_pixels": [
+    488011239,
+    13605460,
+    15254401,
+    23800188,
+    3457002,
+    202752874,
+    52283024,
+    47243703
+  ],
+  "calibration_class_pixels": [
+    100865730,
+    4901347,
+    3818010,
+    4249554,
+    1460832,
+    43128755,
+    11138684,
+    11281662
+  ],
+  "confirmation_class_pixels": [
+    100638036,
+    3295017,
+    3207727,
+    3542132,
+    415106,
+    40496073,
+    10652577,
+    9470445
+  ]
+}

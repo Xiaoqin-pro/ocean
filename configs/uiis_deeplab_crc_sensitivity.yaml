@@ -1,0 +1,31 @@
+experiment:
+  checkpoint: outputs/deeplabv3_mobilenetv3_uiis_alpha010_confirmation/checkpoints/last.pt
+  degradation_config: configs/degradation_pilot.yaml
+  cache_dir: outputs/uiis_deeplab_temperature_scaling/cache
+  output_dir: outputs/uiis_deeplab_crc_sensitivity
+  calibration_curves: outputs/uiis_deeplab_crc_sensitivity/risk_curves/calibration.npz
+  confirmation_curves: outputs/uiis_deeplab_crc_sensitivity/risk_curves/confirmation.npz
+  descriptors_dir: outputs/uiis_alpha010_crc/descriptors
+  samples: {calibration: 508, confirmation: 511}
+  conditions: [clean, color_s1, color_s2, color_s3, turbidity_s1, turbidity_s2, turbidity_s3, lowlight_s1, lowlight_s2, lowlight_s3, blur_s1, blur_s2, blur_s3]
+  official_suim_test_locked: true
+risk:
+  coverage_grid_start: 0.01
+  coverage_grid_stop: 1.00
+  coverage_grid_step: 0.01
+  measurement_size: 192
+  targets: [0.05, 0.10, 0.15]
+  crc_bound: 1.0
+quality:
+  groups: 3
+  minimum_calibration_clusters: 80
+  seeds: [20260722, 20260723, 20260724]
+bootstrap:
+  iterations: 1000
+  seed: 20260724
+protocol:
+  external_benchmark_extension: true
+  confirmation_previously_opened_for_darc_negative_control: true
+  confirmation_used_for_fitting: false
+  official_suim_test_evaluated: false
+  model_retrained: false

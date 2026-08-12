@@ -1,0 +1,42 @@
+experiment:
+  name: pesc_unanchored_fast
+  branch: experiment/sgre-seg
+  seed: 20260811
+  output_dir: outputs/pesc_unanchored_fast
+
+data:
+  uiis_train_csv: data/uiis_processed/splits/uiis_alpha010_confirmation/train.csv
+  uiis_confirmation_csv: data/uiis_processed/splits/uiis_alpha010_confirmation/confirmation.csv
+  uvmulti_root: data/uvmulti
+  degradation_registry: configs/degradation_pilot.yaml
+  image_size: 256
+  evaluation_image_size: 384
+
+model:
+  hidden_sizes: [32, 64, 160, 256]
+  num_classes: 8
+  rectifier_reduction: 4
+
+training:
+  epochs: 8
+  batch_size: 8
+  pair_batch_size: 8
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  amp: true
+  prototype_weight: 0.05
+  prototype_margin: 0.15
+  prototype_minimum_pixels: 4
+  distillation_weight: 0.10
+  distillation_temperature: 2.0
+  confidence_power: 1.0
+  source_anchor_weight: 0.0
+  source_temperature: 2.0
+  anchor_weight: 0.01
+  clean_identity_weight: 0.02
+  pair_weight: 1.0
+  pair_temperature: 2.0
+  pair_confidence_threshold: 0.55
+
+evaluation:
+  conditions: [clean, color_s1, color_s2, color_s3, turbidity_s1, turbidity_s2, turbidity_s3, lowlight_s1, lowlight_s2, lowlight_s3, blur_s1, blur_s2, blur_s3]

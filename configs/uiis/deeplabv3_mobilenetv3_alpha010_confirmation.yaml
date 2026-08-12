@@ -1,0 +1,25 @@
+experiment:
+  name: deeplabv3_mobilenetv3_uiis_alpha010_confirmation
+  seed: 20260724
+  output_dir: outputs/deeplabv3_mobilenetv3_uiis_alpha010_confirmation
+  protocol: fixed_epoch_training_no_calibration_or_confirmation_access
+data:
+  image_size: 384
+  num_classes: 8
+  batch_size: 4
+  num_workers: 0
+  split_dir: data/uiis_processed/splits/uiis_alpha010_confirmation
+model:
+  architecture: deeplabv3_mobilenet_v3_large
+  backbone_weights: IMAGENET1K_V2
+training:
+  epochs: 60
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+  amp: true
+  checkpoint_every_epochs: 1
+  checkpoint_selection: final_epoch
+  scheduler: cosine_annealing
+loss:
+  name: cross_entropy
+  ignore_index: 255

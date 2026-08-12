@@ -25,8 +25,8 @@ from scripts.evaluate_temperature_scaling import CONDITIONS, load_yaml, sha256, 
 
 def validate_benchmark_protocol(config: dict[str, Any]) -> None:
     experiment = config["experiment"]
-    if list(experiment["splits"]) != ["val"]:
-        raise ValueError("Uncertainty-ranking benchmark permits validation caches only; official TEST is locked.")
+    if list(experiment["splits"]) not in (["val"], ["confirmation"]):
+        raise ValueError("Uncertainty-ranking benchmark permits val/confirmation caches only; official TEST is locked.")
     unknown = set(experiment["conditions"]) - set(CONDITIONS)
     if unknown:
         raise ValueError(f"Unknown registered degradation conditions: {sorted(unknown)}")
@@ -47,7 +47,7 @@ def clustered_comparisons(per_image: pd.DataFrame, *, iterations: int, seed: int
         baseline = per_image.loc[(per_image["score"] == "calibrated_msp") & (per_image["region"] == region)].groupby("sample_id").mean(numeric_only=True)
         for score in SCORE_NAMES:
             candidate = per_image.loc[(per_image["score"] == score) & (per_image["region"] == region)].groupby("sample_id").mean(numeric_only=True)
-            if not candidate.index.equals(baseline.index) or len(candidate) != 146:
+            if not candidate.index.equals(baseline.index) or len(candidate) != len(baseline):
                 raise ValueError("Every image cluster must contain every registered condition and score.")
             for metric, direction in metrics:
                 # Positive means the candidate is better, including for eAURC where lower is better.
@@ -155,7 +155,8 @@ def main() -> None:
     temperature = float(temperatures["clean_global"])
     checkpoint_sha256 = sha256(ROOT / experiment["checkpoint"])
     degradation_sha256 = sha256(ROOT / experiment["degradation_config"])
-    cache_root = ROOT / experiment["cache_dir"] / "val"
+    evaluation_split = str(experiment.get("evaluation_split", experiment["splits"][0]))
+    cache_root = ROOT / experiment["cache_dir"] / evaluation_split
     global_rows: list[dict[str, object]] = []
     image_rows: list[dict[str, object]] = []
     conditions = tuple(experiment["conditions"] if args.conditions is None else args.conditions)
@@ -165,7 +166,7 @@ def main() -> None:
         condition_path = conditions_output / f"{condition}.csv"
         image_path = conditions_output / f"{condition}_per_image.csv"
         expected_condition_rows = len(SCORE_NAMES) * 3
-        expected_image_rows = (args.limit_samples or 146) * len(SCORE_NAMES) * 3
+        expected_image_rows = (args.limit_samples or int(experiment.get("expected_samples", 146))) * len(SCORE_NAMES) * 3
         if args.resume and condition_path.is_file() and image_path.is_file():
             stored_global, stored_image = pd.read_csv(condition_path), pd.read_csv(image_path)
             if len(stored_global) == expected_condition_rows and len(stored_image) == expected_image_rows and not stored_global.duplicated(["condition", "score", "region"]).any():
@@ -174,11 +175,11 @@ def main() -> None:
                 print(f"resumed {condition}")
                 continue
         payload = torch.load(cache_root / f"{condition}.pt", map_location="cpu", weights_only=False)
-        validate_cache_payload(payload, split="val", condition=condition, checkpoint_sha256=checkpoint_sha256, degradation_config_sha256=degradation_sha256)
+        validate_cache_payload(payload, split=evaluation_split, condition=condition, checkpoint_sha256=checkpoint_sha256, degradation_config_sha256=degradation_sha256)
         if args.limit_samples is not None:
             payload = {**payload, "sample_id": payload["sample_id"][:args.limit_samples], "logits": payload["logits"][:args.limit_samples], "labels": payload["labels"][:args.limit_samples]}
         global_values, image_values = evaluate_condition(payload, temperature=temperature, radius=int(metric_config["boundary_radii"][0]), coverages=tuple(metric_config["coverages"]), fractions=tuple(metric_config["top_uncertainty_fractions"]))
-        common = {"split": "val", "condition": condition, "degradation_type": payload["degradation_type"], "severity": payload["severity"], "boundary_radius": int(metric_config["boundary_radii"][0])}
+        common = {"split": evaluation_split, "condition": condition, "degradation_type": payload["degradation_type"], "severity": payload["severity"], "boundary_radius": int(metric_config["boundary_radii"][0])}
         condition_global = pd.DataFrame([{**common, **row} for row in global_values])
         condition_image = pd.DataFrame([{**common, **row} for row in image_values])
         if len(condition_global) != expected_condition_rows or len(condition_image) != expected_image_rows:
@@ -208,7 +209,7 @@ def main() -> None:
         "config": str(config_path.relative_to(ROOT)), "config_sha256": sha256(config_path),
         "checkpoint_sha256": checkpoint_sha256, "degradation_config_sha256": degradation_sha256,
         "temperature": temperature, "conditions": list(conditions), "scores": list(SCORE_NAMES),
-        "split_evaluated": "val", "official_test_evaluated": False, "model_retrained": False,
+        "split_evaluated": evaluation_split, "official_test_evaluated": False, "model_retrained": False,
         "boundary_is_evaluation_stratum_only": True, "formal_run": args.limit_samples is None,
         "result_rows": len(global_table), "per_image_rows": len(image_table),
     }

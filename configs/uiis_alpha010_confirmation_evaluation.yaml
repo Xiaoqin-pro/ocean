@@ -1,0 +1,36 @@
+experiment:
+  source_protocol: UIIS_alpha010_confirmation_v1
+  checkpoint: outputs/segformer_b0_uiis_alpha010_confirmation/checkpoints/last.pt
+  training_config: configs/uiis/segformer_b0_alpha010_confirmation.yaml
+  degradation_config: configs/degradation_pilot.yaml
+  cache_dir: outputs/uiis_alpha010_crc/cache
+  output_dir: outputs/uiis_alpha010_crc
+  parameters_file: experiments/uiis_alpha010_calibration_parameters.json
+  train_split: train
+  fit_split: calibration
+  evaluation_split: confirmation
+  conditions: [clean, color_s1, color_s2, color_s3, turbidity_s1, turbidity_s2, turbidity_s3, lowlight_s1, lowlight_s2, lowlight_s3, blur_s1, blur_s2, blur_s3]
+  official_suim_test_locked: true
+ranking:
+  primary_score: raw_msp
+risk:
+  target_alpha: 0.10
+  coverage_grid_start: 0.01
+  coverage_grid_stop: 1.00
+  coverage_grid_step: 0.01
+  crc_bound: 1.0
+  measurement_size: 192
+quality:
+  descriptors: [mean_luminance, luminance_std, luminance_p10, mean_saturation, log_r_over_g, log_b_over_g, normalized_laplacian_variance, dark_channel_mean]
+  groups: 3
+  minimum_calibration_clusters: 80
+  descriptor_long_side: 192
+  seeds: [20260722, 20260723, 20260724]
+bootstrap:
+  iterations: 1000
+  seed: 20260722
+protocol:
+  confirmation_used_for_fitting: false
+  confirmation_opened: true
+  official_suim_test_evaluated: false
+  model_retrained_after_protocol_freeze: false
